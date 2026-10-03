@@ -1,27 +1,26 @@
 <!DOCTYPE html>
-<html><head><link href="./dist/output.css" rel="stylesheet"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>One Wallet</title>
-<style>
-*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:#F6F8F7;color:#0F172A}
-.app{display:flex;min-height:100vh}.sb{width:220px;background:#134E4A;padding:24px 14px;display:flex;flex-direction:column;gap:6px;color:#fff;flex-shrink:0}
-.sb b{font-size:18px;margin-bottom:20px;padding-left:8px}.sb a{padding:10px 12px;border-radius:10px;font-size:14px;color:#99F6E4;cursor:pointer}.sb a.a,.sb a:hover{background:#0F766E;color:#fff}
-.mn{flex:1;padding:32px;display:flex;flex-direction:column;gap:16px;max-width:1100px}
-.h{font-size:26px;font-weight:700}.m{font-size:13px;color:#64748B}.k{font-size:34px;font-weight:700}
-.c{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:18px}
-.d{background:#0F766E;color:#fff;border-radius:16px;padding:20px}.q{background:#134E4A;color:#fff;border-radius:16px;padding:20px}.d .m,.q .m{color:#99F6E4}
-button{background:#0F766E;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit}
-.o{background:#fff;color:#0F766E;border:1.5px solid #0F766E}.dg{background:#fff;color:#B91C1C;border:1px solid #FCA5A5;padding:6px 10px}
-.r{display:flex;justify-content:space-between;align-items:center;padding:11px 0;font-size:14px;gap:12px;border-bottom:1px solid #F1F5F9}
-input,select,textarea{width:100%;border:1px solid #CBD5E1;border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;margin:4px 0 10px}
-.p{display:inline-block;background:#E2E8F0;border-radius:99px;padding:6px 12px;font-size:12px;cursor:pointer;margin-right:6px}.on{background:#0F766E;color:#fff}
-.ln{height:8px;background:#E2E8F0;border-radius:9px;flex:1}.ln i{display:block;height:8px;background:#F59E0B;border-radius:9px}
-.gr{display:flex;gap:16px;flex-wrap:wrap}.gr>*{flex:1;min-width:220px}.hd{display:flex;justify-content:space-between;align-items:center}.row{display:flex;gap:8px;flex-wrap:wrap}
-.x{color:#B91C1C}.pos{color:#15803D}
-.ov{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center}.mo{background:#fff;border-radius:20px;padding:28px;width:440px;max-width:92vw}
-.lg{min-height:100vh;display:flex}.lg>*{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 10%}
-@media(max-width:800px){.sb{display:none}.lg>:first-child{display:none}}
-</style></head><body><div id="app"></div><script>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>One Wallet</title>
+<link href="./dist/output.css" rel="stylesheet"></head>
+<body class="bg-[#F6F8F7] text-slate-900"><div id="app"></div><script>
 const TODAY='2026-09-30',PAYDAY='2026-10-15',$=n=>'₱'+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:2}),
 E=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),V=id=>document.getElementById(id).value;
+// Tailwind class sets (written in full so the CLI can find them)
+const K={
+card:'bg-white border border-slate-200 rounded-2xl p-[18px]',
+hero:'bg-teal-700 text-white rounded-2xl p-5',
+dark:'bg-teal-900 text-white rounded-2xl p-5',
+btn:'bg-teal-700 hover:bg-teal-800 text-white rounded-lg px-[18px] py-2.5 font-semibold text-sm cursor-pointer',
+ghost:'bg-white hover:bg-teal-50 text-teal-700 border-[1.5px] border-teal-700 rounded-lg px-[18px] py-2.5 font-semibold text-sm cursor-pointer',
+danger:'bg-white hover:bg-red-50 text-red-700 border border-red-300 rounded-lg px-2.5 py-1.5 font-semibold text-sm cursor-pointer',
+row:'flex justify-between items-center py-[11px] text-sm gap-3 border-b border-slate-100',
+inp:'w-full border border-slate-300 rounded-lg px-3 py-[11px] text-sm mt-1 mb-2.5',
+h:'text-[26px] font-bold',m:'text-[13px] text-slate-500',mt:'text-[13px] text-teal-200',k:'text-4xl font-bold',
+grid:'flex gap-4 flex-wrap [&>*]:flex-1 [&>*]:min-w-[220px]',hd:'flex justify-between items-center',btns:'flex gap-2 flex-wrap',
+pill:'inline-block rounded-full px-3 py-1.5 text-xs cursor-pointer mr-1.5',
+track:'h-2 bg-slate-200 rounded-full flex-1',bar:'block h-2 rounded-full bg-amber-500',barg:'block h-2 rounded-full bg-green-700',
+neg:'font-bold text-red-700',pos:'font-bold text-green-700',
+nav:'px-3 py-2.5 rounded-lg text-sm cursor-pointer',navOn:'bg-teal-700 text-white',navOff:'text-teal-200 hover:bg-teal-700 hover:text-white'};
+const pill=on=>K.pill+(on?' bg-teal-700 text-white':' bg-slate-200');
 const seed=()=>({view:'login',wid:0,fw:0,modal:'',pr:null,raw:'',n:20,
 w:[{id:1,n:'GCash',b:1200},{id:2,n:'Maya',b:2100},{id:3,n:'GoTyme',b:800},{id:4,n:'Cash',b:150}],
 t:[{id:1,d:'09-30',s:'Jollibee',c:'Food',w:1,a:-189},{id:2,d:'09-30',s:'Salary',c:'Income',w:2,a:12000},{id:3,d:'09-29',s:'Load',c:'Load',w:1,a:-50},{id:4,d:'09-29',s:'Grab',c:'Transport',w:1,a:-140}],
@@ -31,11 +30,11 @@ const wn=i=>{const w=S.w.find(x=>x.id==i);return w?E(w.n):'?'},
 tot=()=>S.w.reduce((s,w)=>s+w.b,0),res=()=>S.b.reduce((s,b)=>s+b.a,0),
 days=()=>Math.round((new Date(PAYDAY)-new Date(TODAY))/864e5),per=()=>Math.max(0,(tot()-res())/days()),
 go=v=>{S.view=v;S.wid=0;S.pr=null;R()},op=m=>{S.modal=m;R()},
-wopt=s=>S.w.map(w=>`<option value=${w.id} ${w.id==s?'selected':''}>${E(w.n)}</option>`).join(''),
-btns=f=>`<div class=row><button class=o onclick="op('')">Cancel</button><button onclick="${f}">Save</button></div>`;
+wopt=s=>S.w.map(w=>`<option value="${w.id}" ${w.id==s?'selected':''}>${E(w.n)}</option>`).join(''),
+btns=f=>`<div class="${K.btns}"><button class="${K.ghost}" onclick="op('')">Cancel</button><button class="${K.btn}" onclick="${f}">Save</button></div>`;
 function add(w,a,s,c){S.t.unshift({id:++S.n,d:'09-30',s,c,w:+w,a});S.w.find(z=>z.id==w).b+=a}
 function del(id){const t=S.t.find(x=>x.id==id);S.w.find(z=>z.id==t.w).b-=t.a;S.t=S.t.filter(x=>x.id!=id);R()}
-function txRows(l,d){return l.map(t=>`<div class=r><span>${t.d}</span><span>${E(t.s)}</span><span class=m>${t.c} · ${wn(t.w)}</span><b class="${t.a<0?'x':'pos'}">${t.a<0?'−':'+'}${$(t.a)}</b>${d?`<button class=dg onclick="del(${t.id})">✕</button>`:''}</div>`).join('')||'<div class=m>Nothing here yet.</div>'}
+function txRows(l,d){return l.map(t=>`<div class="${K.row}"><span>${t.d}</span><span>${E(t.s)}</span><span class="${K.m}">${t.c} · ${wn(t.w)}</span><b class="${t.a<0?K.neg:K.pos}">${t.a<0?'−':'+'}${$(t.a)}</b>${d?`<button class="${K.danger}" onclick="del(${t.id})">✕</button>`:''}</div>`).join('')||`<div class="${K.m}">Nothing here yet.</div>`}
 const SAMPLES=['GCash: You have paid ₱189.00 to Jollibee. Ref 5012 884 991.','Maya: You received ₱1,500.00 from Juan Dela Cruz.','GoTyme: You sent ₱350.00 to Grab. Ref 88231.'];
 function fill(i){S.raw=SAMPLES[i];S.pr=null;R()}
 function rd(){const x=S.raw=V('raw'),a=(x.match(/(?:₱|PHP\s?)\s?([\d,]+(?:\.\d+)?)/i)||[])[1];
@@ -51,24 +50,24 @@ function saveW(){S.w.push({id:++S.n,n:V('wnm')||'Wallet',b:+V('wb')||0});S.modal
 function saveB(){S.b.push({id:++S.n,n:V('bn')||'Bill',a:+V('ba')||0,d:V('bd')||'-'});S.modal='';R()}
 function doRec(){const w=S.w.find(x=>x.id==S.wid),d=+V('rb')-w.b;if(d)add(w.id,d,'Reconciliation adjustment','Others');S.modal='';R()}
 const M={
-tx:()=>`<div class=h>Add transaction</div><select id=ty><option value=-1>Expense</option><option value=1>Income</option></select><input id=am type=number placeholder="Amount"><select id=mw>${wopt()}</select><select id=mc>${['Food','Transport','Load','Bills','Others','Income'].map(c=>`<option>${c}</option>`).join('')}</select><input id=nt placeholder="Note or merchant">${btns('saveTx()')}`,
-wal:()=>`<div class=h>Add wallet</div><input id=wnm placeholder="Name (e.g. MariBank)"><input id=wb type=number placeholder="Starting balance">${btns('saveW()')}`,
-bill:()=>`<div class=h>Add bill</div><input id=bn placeholder="Name"><input id=ba type=number placeholder="Amount"><input id=bd placeholder="Due date (e.g. Oct 12)">${btns('saveB()')}`,
-rec:()=>{const w=S.w.find(x=>x.id==S.wid);return `<div class=h>Reconcile ${E(w.n)}</div><div class=m>One Wallet says ${$(w.b)}. Enter what the real app shows.</div><input id=rb type=number placeholder="Real balance">${btns('doRec()')}`}};
+tx:()=>`<div class="${K.h}">Add transaction</div><select id="ty" class="${K.inp}"><option value="-1">Expense</option><option value="1">Income</option></select><input id="am" type="number" class="${K.inp}" placeholder="Amount"><select id="mw" class="${K.inp}">${wopt()}</select><select id="mc" class="${K.inp}">${['Food','Transport','Load','Bills','Others','Income'].map(c=>`<option>${c}</option>`).join('')}</select><input id="nt" class="${K.inp}" placeholder="Note or merchant">${btns('saveTx()')}`,
+wal:()=>`<div class="${K.h}">Add wallet</div><input id="wnm" class="${K.inp}" placeholder="Name (e.g. MariBank)"><input id="wb" type="number" class="${K.inp}" placeholder="Starting balance">${btns('saveW()')}`,
+bill:()=>`<div class="${K.h}">Add bill</div><input id="bn" class="${K.inp}" placeholder="Name"><input id="ba" type="number" class="${K.inp}" placeholder="Amount"><input id="bd" class="${K.inp}" placeholder="Due date (e.g. Oct 12)">${btns('saveB()')}`,
+rec:()=>{const w=S.w.find(x=>x.id==S.wid);return `<div class="${K.h}">Reconcile ${E(w.n)}</div><div class="${K.m} mt-1">One Wallet says ${$(w.b)}. Enter what the real app shows.</div><input id="rb" type="number" class="${K.inp}" placeholder="Real balance">${btns('doRec()')}`}};
 const VW={
-login:()=>`<div class=lg><div style="background:#0F766E;color:#fff"><div class=k style="font-size:44px">One Wallet</div><div>All your money. One view.</div></div><div><div class=h>Sign in</div><input placeholder=Email><input type=password placeholder=Password><button onclick="go('dash')">Sign in</button><div class=m style="margin-top:12px">Demo: any input works.</div></div></div>`,
-dash:()=>`<div class=hd><div class=h>Dashboard</div><button onclick="op('tx')">+ Add transaction</button></div>
-<div class=gr><div class=d><div class=m>Total balance</div><div class=k>${$(tot())}</div><div class=m>across ${S.w.length} wallets</div></div><div class=q><div class=m>Runway until Oct 15</div><div class=k>${$(per())} /day</div><div class=m>${days()} days left · bills reserved ${$(res())}</div></div></div>
-<div class=gr><div class=c style="flex:2"><b>Recent transactions</b>${txRows(S.t.slice(0,5))}</div><div class=c><b>Wallets</b>${S.w.map(w=>`<div class=r><span>${E(w.n)}</span><b>${$(w.b)}</b></div>`).join('')}</div></div>`,
-wal:()=>{const w=S.w.find(x=>x.id==S.wid);return w?`<div class=m style="cursor:pointer" onclick="S.wid=0;R()">‹ Wallets</div><div class=hd><div class=h>${E(w.n)}</div><button onclick="op('rec')">Reconcile balance</button></div><div class=d><div class=m>Balance</div><div class=k>${$(w.b)}</div></div><div class=c><b>Transactions</b>${txRows(S.t.filter(t=>t.w==w.id))}</div>`:`<div class=hd><div class=h>Wallets</div><button onclick="op('wal')">+ Add wallet</button></div><div class=gr>${S.w.map(w=>`<div class=c style="cursor:pointer" onclick="S.wid=${w.id};R()"><b>${E(w.n)}</b><div class=k>${$(w.b)}</div></div>`).join('')}</div>`},
-tx:()=>`<div class=hd><div class=h>Transactions</div><button onclick="op('tx')">+ Add</button></div><div><span class="p ${S.fw==0?'on':''}" onclick="S.fw=0;R()">All</span>${S.w.map(w=>`<span class="p ${S.fw==w.id?'on':''}" onclick="S.fw=${w.id};R()">${E(w.n)}</span>`).join('')}</div><div class=c>${txRows(S.t.filter(t=>!S.fw||t.w==S.fw),1)}</div>`,
-imp:()=>{const p=S.pr;return `<div class=h>Import alerts</div><div class=m>Paste a payment alert. One Wallet reads the amount, direction and merchant.</div><div class=c><textarea id=raw rows=4 placeholder="Paste alert text">${E(S.raw)}</textarea><div class=row><button onclick="rd()">Read alert</button><button class=o onclick="fill(0)">Sample: GCash</button><button class=o onclick="fill(1)">Sample: Maya</button><button class=o onclick="fill(2)">Sample: GoTyme</button></div></div>${p?(p.err?`<div class=c><b class=x>${p.err}</b></div>`:`<div class=c><b>Detected</b><div class=r><span>Amount</span><b>${$(p.a)}</b></div><div class=r><span>Direction</span><b>${p.dir>0?'In':'Out'}</b></div><div class=r><span>Merchant</span><b>${E(p.s)}</b></div><div class=r><span>Category</span><b>${p.c}</b></div><div class=m>Wallet</div><select id=pw>${wopt(p.w)}</select><button onclick="okp()">Confirm and add</button></div>`):''}`},
-bill:()=>`<div class=hd><div class=h>Bills</div><button onclick="op('bill')">+ Add bill</button></div><div class=d><div class=m>Reserved this period</div><div class=k>${$(res())}</div></div><div class=c>${S.b.map(b=>`<div class=r><div><b>${E(b.n)}</b><div class=m>Due ${E(b.d)}</div></div><b>${$(b.a)}</b><button class=dg onclick="S.b=S.b.filter(x=>x.id!=${b.id});R()">✕</button></div>`).join('')||'<div class=m>No bills.</div>'}</div>`,
+login:()=>`<div class="min-h-screen flex"><div class="flex-1 flex flex-col justify-center px-[10%] bg-teal-700 text-white max-md:hidden"><div class="text-5xl font-bold">One Wallet</div><div>All your money. One view.</div></div><div class="flex-1 flex flex-col justify-center px-[10%]"><div class="${K.h} mb-3">Sign in</div><input class="${K.inp}" placeholder="Email"><input type="password" class="${K.inp}" placeholder="Password"><button class="${K.btn}" onclick="go('dash')">Sign in</button><div class="${K.m} mt-3">Demo: any input works.</div></div></div>`,
+dash:()=>`<div class="${K.hd}"><div class="${K.h}">Dashboard</div><button class="${K.btn}" onclick="op('tx')">+ Add transaction</button></div>
+<div class="${K.grid}"><div class="${K.hero}"><div class="${K.mt}">Total balance</div><div class="${K.k}">${$(tot())}</div><div class="${K.mt}">across ${S.w.length} wallets</div></div><div class="${K.dark}"><div class="${K.mt}">Runway until Oct 15</div><div class="${K.k}">${$(per())} /day</div><div class="${K.mt}">${days()} days left · bills reserved ${$(res())}</div></div></div>
+<div class="${K.grid}"><div class="${K.card}"><b>Recent transactions</b>${txRows(S.t.slice(0,5))}</div><div class="${K.card}"><b>Wallets</b>${S.w.map(w=>`<div class="${K.row}"><span>${E(w.n)}</span><b>${$(w.b)}</b></div>`).join('')}</div></div>`,
+wal:()=>{const w=S.w.find(x=>x.id==S.wid);return w?`<div class="${K.m} cursor-pointer" onclick="S.wid=0;R()">‹ Wallets</div><div class="${K.hd}"><div class="${K.h}">${E(w.n)}</div><button class="${K.btn}" onclick="op('rec')">Reconcile balance</button></div><div class="${K.hero}"><div class="${K.mt}">Balance</div><div class="${K.k}">${$(w.b)}</div></div><div class="${K.card}"><b>Transactions</b>${txRows(S.t.filter(t=>t.w==w.id))}</div>`:`<div class="${K.hd}"><div class="${K.h}">Wallets</div><button class="${K.btn}" onclick="op('wal')">+ Add wallet</button></div><div class="${K.grid}">${S.w.map(w=>`<div class="${K.card} cursor-pointer hover:border-teal-700" onclick="S.wid=${w.id};R()"><b>${E(w.n)}</b><div class="${K.k}">${$(w.b)}</div></div>`).join('')}</div>`},
+tx:()=>`<div class="${K.hd}"><div class="${K.h}">Transactions</div><button class="${K.btn}" onclick="op('tx')">+ Add</button></div><div><span class="${pill(S.fw==0)}" onclick="S.fw=0;R()">All</span>${S.w.map(w=>`<span class="${pill(S.fw==w.id)}" onclick="S.fw=${w.id};R()">${E(w.n)}</span>`).join('')}</div><div class="${K.card}">${txRows(S.t.filter(t=>!S.fw||t.w==S.fw),1)}</div>`,
+imp:()=>{const p=S.pr;return `<div class="${K.h}">Import alerts</div><div class="${K.m}">Paste a payment alert. One Wallet reads the amount, direction and merchant.</div><div class="${K.card}"><textarea id="raw" rows="4" class="${K.inp}" placeholder="Paste alert text">${E(S.raw)}</textarea><div class="${K.btns}"><button class="${K.btn}" onclick="rd()">Read alert</button><button class="${K.ghost}" onclick="fill(0)">Sample: GCash</button><button class="${K.ghost}" onclick="fill(1)">Sample: Maya</button><button class="${K.ghost}" onclick="fill(2)">Sample: GoTyme</button></div></div>${p?(p.err?`<div class="${K.card}"><b class="text-red-700">${p.err}</b></div>`:`<div class="${K.card}"><b>Detected</b><div class="${K.row}"><span>Amount</span><b>${$(p.a)}</b></div><div class="${K.row}"><span>Direction</span><b>${p.dir>0?'In':'Out'}</b></div><div class="${K.row}"><span>Merchant</span><b>${E(p.s)}</b></div><div class="${K.row}"><span>Category</span><b>${p.c}</b></div><div class="${K.m} mt-3">Wallet</div><select id="pw" class="${K.inp}">${wopt(p.w)}</select><button class="${K.btn}" onclick="okp()">Confirm and add</button></div>`):''}`},
+bill:()=>`<div class="${K.hd}"><div class="${K.h}">Bills</div><button class="${K.btn}" onclick="op('bill')">+ Add bill</button></div><div class="${K.hero}"><div class="${K.mt}">Reserved this period</div><div class="${K.k}">${$(res())}</div></div><div class="${K.card}">${S.b.map(b=>`<div class="${K.row}"><div><b>${E(b.n)}</b><div class="${K.m}">Due ${E(b.d)}</div></div><b>${$(b.a)}</b><button class="${K.danger}" onclick="S.b=S.b.filter(x=>x.id!=${b.id});R()">✕</button></div>`).join('')||`<div class="${K.m}">No bills.</div>`}</div>`,
 ins:()=>{const m={};S.t.filter(t=>t.a<0).forEach(t=>m[t.c]=(m[t.c]||0)-t.a);const inc=S.t.filter(t=>t.a>0).reduce((s,t)=>s+t.a,0),out=Object.values(m).reduce((s,v)=>s+v,0),mx=Math.max(1,...Object.values(m));
-return `<div class=h>Insights</div><div class=gr><div class=c><b>Income vs expenses</b><div class=r><span>In</span><div class=ln><i style="width:100%;background:#15803D"></i></div><b>${$(inc)}</b></div><div class=r><span>Out</span><div class=ln><i style="width:${inc?Math.min(100,out/inc*100):0}%"></i></div><b>${$(out)}</b></div></div><div class=c><b>Top categories</b>${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class=r><span>${k}</span><div class=ln><i style="width:${v/mx*100}%"></i></div><b>${$(v)}</b></div>`).join('')||'<div class=m>No spending yet.</div>'}</div></div>`},
-set:()=>`<div class=h>Settings</div><div class=c><div class=r><span>Sign out</span><button class=o onclick="go('login')">Sign out</button></div><div class=r><span>Reset demo data</span><button class=dg onclick="S=seed();go('dash')">Reset</button></div></div>`};
+return `<div class="${K.h}">Insights</div><div class="${K.grid}"><div class="${K.card}"><b>Income vs expenses</b><div class="${K.row}"><span>In</span><div class="${K.track}"><i class="${K.barg}" style="width:100%"></i></div><b>${$(inc)}</b></div><div class="${K.row}"><span>Out</span><div class="${K.track}"><i class="${K.bar}" style="width:${inc?Math.min(100,out/inc*100):0}%"></i></div><b>${$(out)}</b></div></div><div class="${K.card}"><b>Top categories</b>${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="${K.row}"><span>${k}</span><div class="${K.track}"><i class="${K.bar}" style="width:${v/mx*100}%"></i></div><b>${$(v)}</b></div>`).join('')||`<div class="${K.m}">No spending yet.</div>`}</div></div>`},
+set:()=>`<div class="${K.h}">Settings</div><div class="${K.card}"><div class="${K.row}"><span>Sign out</span><button class="${K.ghost}" onclick="go('login')">Sign out</button></div><div class="${K.row}"><span>Reset demo data</span><button class="${K.danger}" onclick="S=seed();go('dash')">Reset</button></div></div>`};
 function R(){const a=document.getElementById('app');if(S.view=='login'){a.innerHTML=VW.login();return}
 const nav=[['dash','Dashboard'],['wal','Wallets'],['tx','Transactions'],['imp','Import'],['bill','Bills'],['ins','Insights'],['set','Settings']];
-a.innerHTML=`<div class=app><div class=sb><b>◎ One Wallet</b>${nav.map(([k,l])=>`<a class="${S.view==k?'a':''}" onclick="go('${k}')">${l}</a>`).join('')}</div><div class=mn>${VW[S.view]()}</div></div>${S.modal?`<div class=ov><div class=mo>${M[S.modal]()}</div></div>`:''}`}
+a.innerHTML=`<div class="flex min-h-screen"><div class="w-[220px] shrink-0 bg-teal-900 px-3.5 py-6 flex flex-col gap-1.5 text-white max-md:hidden"><b class="text-lg mb-5 pl-2">◎ One Wallet</b>${nav.map(([k,l])=>`<a class="${K.nav} ${S.view==k?K.navOn:K.navOff}" onclick="go('${k}')">${l}</a>`).join('')}</div><div class="flex-1 max-w-[1100px] p-8 max-md:p-4 flex flex-col gap-4">${VW[S.view]()}</div></div>${S.modal?`<div class="fixed inset-0 bg-slate-900/50 flex items-center justify-center"><div class="bg-white rounded-[20px] p-7 w-[440px] max-w-[92vw]">${M[S.modal]()}</div></div>`:''}`}
 R();
 </script></body></html>
