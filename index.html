@@ -26,6 +26,7 @@ w:[{id:1,n:'GCash',b:1200},{id:2,n:'Maya',b:2100},{id:3,n:'GoTyme',b:800},{id:4,
 t:[{id:1,d:'09-30',s:'Jollibee',c:'Food',w:1,a:-189},{id:2,d:'09-30',s:'Salary',c:'Income',w:2,a:12000},{id:3,d:'09-29',s:'Load',c:'Load',w:1,a:-50},{id:4,d:'09-29',s:'Grab',c:'Transport',w:1,a:-140}],
 b:[{id:1,n:'Wi-Fi',a:1299,d:'Oct 5'},{id:2,n:'Spotify',a:200,d:'Oct 9'}]});
 let S=seed();
+try{const saved=JSON.parse(localStorage.getItem('onewallet'));if(saved)S={...S,...saved}}catch(e){}
 const wn=i=>{const w=S.w.find(x=>x.id==i);return w?E(w.n):'?'},
 tot=()=>S.w.reduce((s,w)=>s+w.b,0),res=()=>S.b.reduce((s,b)=>s+b.a,0),
 days=()=>Math.round((new Date(PAYDAY)-new Date(TODAY))/864e5),per=()=>Math.max(0,(tot()-res())/days()),
@@ -66,7 +67,7 @@ bill:()=>`<div class="${K.hd}"><div class="${K.h}">Bills</div><button class="${K
 ins:()=>{const m={};S.t.filter(t=>t.a<0).forEach(t=>m[t.c]=(m[t.c]||0)-t.a);const inc=S.t.filter(t=>t.a>0).reduce((s,t)=>s+t.a,0),out=Object.values(m).reduce((s,v)=>s+v,0),mx=Math.max(1,...Object.values(m));
 return `<div class="${K.h}">Insights</div><div class="${K.grid}"><div class="${K.card}"><b>Income vs expenses</b><div class="${K.row}"><span>In</span><div class="${K.track}"><i class="${K.barg}" style="width:100%"></i></div><b>${$(inc)}</b></div><div class="${K.row}"><span>Out</span><div class="${K.track}"><i class="${K.bar}" style="width:${inc?Math.min(100,out/inc*100):0}%"></i></div><b>${$(out)}</b></div></div><div class="${K.card}"><b>Top categories</b>${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="${K.row}"><span>${k}</span><div class="${K.track}"><i class="${K.bar}" style="width:${v/mx*100}%"></i></div><b>${$(v)}</b></div>`).join('')||`<div class="${K.m}">No spending yet.</div>`}</div></div>`},
 set:()=>`<div class="${K.h}">Settings</div><div class="${K.card}"><div class="${K.row}"><span>Sign out</span><button class="${K.ghost}" onclick="go('login')">Sign out</button></div><div class="${K.row}"><span>Reset demo data</span><button class="${K.danger}" onclick="S=seed();go('dash')">Reset</button></div></div>`};
-function R(){const a=document.getElementById('app');if(S.view=='login'){a.innerHTML=VW.login();return}
+function R(){try{localStorage.setItem('onewallet',JSON.stringify({w:S.w,t:S.t,b:S.b,n:S.n}))}catch(e){}const a=document.getElementById('app');if(S.view=='login'){a.innerHTML=VW.login();return}
 const nav=[['dash','Dashboard'],['wal','Wallets'],['tx','Transactions'],['imp','Import'],['bill','Bills'],['ins','Insights'],['set','Settings']];
 a.innerHTML=`<div class="flex min-h-screen"><div class="w-[220px] shrink-0 bg-teal-900 px-3.5 py-6 flex flex-col gap-1.5 text-white max-md:hidden"><b class="text-lg mb-5 pl-2">◎ One Wallet</b>${nav.map(([k,l])=>`<a class="${K.nav} ${S.view==k?K.navOn:K.navOff}" onclick="go('${k}')">${l}</a>`).join('')}</div><div class="flex-1 max-w-[1100px] p-8 max-md:p-4 flex flex-col gap-4">${VW[S.view]()}</div></div>${S.modal?`<div class="fixed inset-0 bg-slate-900/50 flex items-center justify-center"><div class="bg-white rounded-[20px] p-7 w-[440px] max-w-[92vw]">${M[S.modal]()}</div></div>`:''}`}
 R();
