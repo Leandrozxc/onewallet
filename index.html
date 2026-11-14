@@ -1,75 +1,118 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>One Wallet</title>
-<link href="./dist/output.css" rel="stylesheet"></head>
-<body class="bg-[#F6F8F7] text-slate-900"><div id="app"></div><script>
-const TODAY='2026-09-30',PAYDAY='2026-10-15',$=n=>'₱'+Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:2}),
-E=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),V=id=>document.getElementById(id).value;
-// Tailwind class sets (written in full so the CLI can find them)
-const K={
-card:'bg-white border border-slate-200 rounded-2xl p-[18px]',
-hero:'bg-teal-700 text-white rounded-2xl p-5',
-dark:'bg-teal-900 text-white rounded-2xl p-5',
-btn:'bg-teal-700 hover:bg-teal-800 text-white rounded-lg px-[18px] py-2.5 font-semibold text-sm cursor-pointer',
-ghost:'bg-white hover:bg-teal-50 text-teal-700 border-[1.5px] border-teal-700 rounded-lg px-[18px] py-2.5 font-semibold text-sm cursor-pointer',
-danger:'bg-white hover:bg-red-50 text-red-700 border border-red-300 rounded-lg px-2.5 py-1.5 font-semibold text-sm cursor-pointer',
-row:'flex justify-between items-center py-[11px] text-sm gap-3 border-b border-slate-100',
-inp:'w-full border border-slate-300 rounded-lg px-3 py-[11px] text-sm mt-1 mb-2.5',
-h:'text-[26px] font-bold',m:'text-[13px] text-slate-500',mt:'text-[13px] text-teal-200',k:'text-4xl font-bold',
-grid:'flex gap-4 flex-wrap [&>*]:flex-1 [&>*]:min-w-[220px]',hd:'flex justify-between items-center',btns:'flex gap-2 flex-wrap',
-pill:'inline-block rounded-full px-3 py-1.5 text-xs cursor-pointer mr-1.5',
-track:'h-2 bg-slate-200 rounded-full flex-1',bar:'block h-2 rounded-full bg-amber-500',barg:'block h-2 rounded-full bg-green-700',
-neg:'font-bold text-red-700',pos:'font-bold text-green-700',
-nav:'px-3 py-2.5 rounded-lg text-sm cursor-pointer',navOn:'bg-teal-700 text-white',navOff:'text-teal-200 hover:bg-teal-700 hover:text-white'};
-const pill=on=>K.pill+(on?' bg-teal-700 text-white':' bg-slate-200');
-const seed=()=>({view:'login',wid:0,fw:0,modal:'',pr:null,raw:'',n:20,
-w:[{id:1,n:'GCash',b:1200},{id:2,n:'Maya',b:2100},{id:3,n:'GoTyme',b:800},{id:4,n:'Cash',b:150}],
-t:[{id:1,d:'09-30',s:'Jollibee',c:'Food',w:1,a:-189},{id:2,d:'09-30',s:'Salary',c:'Income',w:2,a:12000},{id:3,d:'09-29',s:'Load',c:'Load',w:1,a:-50},{id:4,d:'09-29',s:'Grab',c:'Transport',w:1,a:-140}],
-b:[{id:1,n:'Wi-Fi',a:1299,d:'Oct 5'},{id:2,n:'Spotify',a:200,d:'Oct 9'}]});
-let S=seed();
-try{const saved=JSON.parse(localStorage.getItem('onewallet'));if(saved)S={...S,...saved}}catch(e){}
-const wn=i=>{const w=S.w.find(x=>x.id==i);return w?E(w.n):'?'},
-tot=()=>S.w.reduce((s,w)=>s+w.b,0),res=()=>S.b.reduce((s,b)=>s+b.a,0),
-days=()=>Math.round((new Date(PAYDAY)-new Date(TODAY))/864e5),per=()=>Math.max(0,(tot()-res())/days()),
-go=v=>{if(location.hash=='#'+v){S.view=v;S.wid=0;S.pr=null;R()}else location.hash=v},op=m=>{S.modal=m;R()},
-wopt=s=>S.w.map(w=>`<option value="${w.id}" ${w.id==s?'selected':''}>${E(w.n)}</option>`).join(''),
-btns=f=>`<div class="${K.btns}"><button class="${K.ghost}" onclick="op('')">Cancel</button><button class="${K.btn}" onclick="${f}">Save</button></div>`;
-function add(w,a,s,c){S.t.unshift({id:++S.n,d:'09-30',s,c,w:+w,a});S.w.find(z=>z.id==w).b+=a}
-function del(id){const t=S.t.find(x=>x.id==id);S.w.find(z=>z.id==t.w).b-=t.a;S.t=S.t.filter(x=>x.id!=id);R()}
-function txRows(l,d){return l.map(t=>`<div class="${K.row}"><span>${t.d}</span><span>${E(t.s)}</span><span class="${K.m}">${t.c} · ${wn(t.w)}</span><b class="${t.a<0?K.neg:K.pos}">${t.a<0?'−':'+'}${$(t.a)}</b>${d?`<button class="${K.danger}" onclick="del(${t.id})">✕</button>`:''}</div>`).join('')||`<div class="${K.m}">Nothing here yet.</div>`}
-const SAMPLES=['GCash: You have paid ₱189.00 to Jollibee. Ref 5012 884 991.','Maya: You received ₱1,500.00 from Juan Dela Cruz.','GoTyme: You sent ₱350.00 to Grab. Ref 88231.'];
-function fill(i){S.raw=SAMPLES[i];S.pr=null;R()}
-function rd(){const x=S.raw=V('raw'),a=(x.match(/(?:₱|PHP\s?)\s?([\d,]+(?:\.\d+)?)/i)||[])[1];
-if(!a){S.pr={err:'No amount found. Try a sample alert.'};return R()}
-const inn=/received|credited|cash[- ]?in|deposit/i.test(x),out=/paid|sent|transferred|purchase|debited|cash[- ]?out/i.test(x),
-s=(x.match(/(?:to|from|at)\s+([A-Z][\w&' -]*?)(?:\.|,|\s+Ref|$)/)||[])[1]||'Unknown',
-w=S.w.find(z=>new RegExp(z.n,'i').test(x)),
-c=inn&&!out?'Income':/jollibee|mcdo|food|coffee|milk ?tea/i.test(x)?'Food':/grab|angkas|jeep|mrt|lrt/i.test(x)?'Transport':/load|globe|smart/i.test(x)?'Load':/meralco|wifi|water|converge/i.test(x)?'Bills':'Others';
-S.pr={a:parseFloat(a.replace(/,/g,'')),dir:inn&&!out?1:-1,s,c,w:w?w.id:S.w[0].id};R()}
-function okp(){const p=S.pr;add(V('pw'),p.a*p.dir,p.s,p.c);S.pr=null;S.raw='';go('tx')}
-function saveTx(){const a=+V('am');if(!a)return;add(V('mw'),V('ty')*a,V('nt')||'Manual',V('mc'));S.modal='';R()}
-function saveW(){S.w.push({id:++S.n,n:V('wnm')||'Wallet',b:+V('wb')||0});S.modal='';R()}
-function saveB(){S.b.push({id:++S.n,n:V('bn')||'Bill',a:+V('ba')||0,d:V('bd')||'-'});S.modal='';R()}
-function doRec(){const w=S.w.find(x=>x.id==S.wid),d=+V('rb')-w.b;if(d)add(w.id,d,'Reconciliation adjustment','Others');S.modal='';R()}
-const M={
-tx:()=>`<div class="${K.h}">Add transaction</div><select id="ty" class="${K.inp}"><option value="-1">Expense</option><option value="1">Income</option></select><input id="am" type="number" class="${K.inp}" placeholder="Amount"><select id="mw" class="${K.inp}">${wopt()}</select><select id="mc" class="${K.inp}">${['Food','Transport','Load','Bills','Others','Income'].map(c=>`<option>${c}</option>`).join('')}</select><input id="nt" class="${K.inp}" placeholder="Note or merchant">${btns('saveTx()')}`,
-wal:()=>`<div class="${K.h}">Add wallet</div><input id="wnm" class="${K.inp}" placeholder="Name (e.g. MariBank)"><input id="wb" type="number" class="${K.inp}" placeholder="Starting balance">${btns('saveW()')}`,
-bill:()=>`<div class="${K.h}">Add bill</div><input id="bn" class="${K.inp}" placeholder="Name"><input id="ba" type="number" class="${K.inp}" placeholder="Amount"><input id="bd" class="${K.inp}" placeholder="Due date (e.g. Oct 12)">${btns('saveB()')}`,
-rec:()=>{const w=S.w.find(x=>x.id==S.wid);return `<div class="${K.h}">Reconcile ${E(w.n)}</div><div class="${K.m} mt-1">One Wallet says ${$(w.b)}. Enter what the real app shows.</div><input id="rb" type="number" class="${K.inp}" placeholder="Real balance">${btns('doRec()')}`}};
-const VW={
-login:()=>`<div class="min-h-screen flex"><div class="flex-1 flex flex-col justify-center px-[10%] bg-teal-700 text-white max-md:hidden"><div class="text-5xl font-bold">One Wallet</div><div>All your money. One view.</div></div><div class="flex-1 flex flex-col justify-center px-[10%]"><div class="${K.h} mb-3">Sign in</div><input class="${K.inp}" placeholder="Email"><input type="password" class="${K.inp}" placeholder="Password"><button class="${K.btn}" onclick="go('dash')">Sign in</button><div class="${K.m} mt-3">Demo: any input works.</div></div></div>`,
-dash:()=>`<div class="${K.hd}"><div class="${K.h}">Dashboard</div><button class="${K.btn}" onclick="op('tx')">+ Add transaction</button></div>
-<div class="${K.grid}"><div class="${K.hero}"><div class="${K.mt}">Total balance</div><div class="${K.k}">${$(tot())}</div><div class="${K.mt}">across ${S.w.length} wallets</div></div><div class="${K.dark}"><div class="${K.mt}">Runway until Oct 15</div><div class="${K.k}">${$(per())} /day</div><div class="${K.mt}">${days()} days left · bills reserved ${$(res())}</div></div></div>
-<div class="${K.grid}"><div class="${K.card}"><b>Recent transactions</b>${txRows(S.t.slice(0,5))}</div><div class="${K.card}"><b>Wallets</b>${S.w.map(w=>`<div class="${K.row}"><span>${E(w.n)}</span><b>${$(w.b)}</b></div>`).join('')}</div></div>`,
-wal:()=>{const w=S.w.find(x=>x.id==S.wid);return w?`<div class="${K.m} cursor-pointer" onclick="S.wid=0;R()">‹ Wallets</div><div class="${K.hd}"><div class="${K.h}">${E(w.n)}</div><button class="${K.btn}" onclick="op('rec')">Reconcile balance</button></div><div class="${K.hero}"><div class="${K.mt}">Balance</div><div class="${K.k}">${$(w.b)}</div></div><div class="${K.card}"><b>Transactions</b>${txRows(S.t.filter(t=>t.w==w.id))}</div>`:`<div class="${K.hd}"><div class="${K.h}">Wallets</div><button class="${K.btn}" onclick="op('wal')">+ Add wallet</button></div><div class="${K.grid}">${S.w.map(w=>`<div class="${K.card} cursor-pointer hover:border-teal-700" onclick="S.wid=${w.id};R()"><b>${E(w.n)}</b><div class="${K.k}">${$(w.b)}</div></div>`).join('')}</div>`},
-tx:()=>`<div class="${K.hd}"><div class="${K.h}">Transactions</div><button class="${K.btn}" onclick="op('tx')">+ Add</button></div><div><span class="${pill(S.fw==0)}" onclick="S.fw=0;R()">All</span>${S.w.map(w=>`<span class="${pill(S.fw==w.id)}" onclick="S.fw=${w.id};R()">${E(w.n)}</span>`).join('')}</div><div class="${K.card}">${txRows(S.t.filter(t=>!S.fw||t.w==S.fw),1)}</div>`,
-imp:()=>{const p=S.pr;return `<div class="${K.h}">Import alerts</div><div class="${K.m}">Paste a payment alert. One Wallet reads the amount, direction and merchant.</div><div class="${K.card}"><textarea id="raw" rows="4" class="${K.inp}" placeholder="Paste alert text">${E(S.raw)}</textarea><div class="${K.btns}"><button class="${K.btn}" onclick="rd()">Read alert</button><button class="${K.ghost}" onclick="fill(0)">Sample: GCash</button><button class="${K.ghost}" onclick="fill(1)">Sample: Maya</button><button class="${K.ghost}" onclick="fill(2)">Sample: GoTyme</button></div></div>${p?(p.err?`<div class="${K.card}"><b class="text-red-700">${p.err}</b></div>`:`<div class="${K.card}"><b>Detected</b><div class="${K.row}"><span>Amount</span><b>${$(p.a)}</b></div><div class="${K.row}"><span>Direction</span><b>${p.dir>0?'In':'Out'}</b></div><div class="${K.row}"><span>Merchant</span><b>${E(p.s)}</b></div><div class="${K.row}"><span>Category</span><b>${p.c}</b></div><div class="${K.m} mt-3">Wallet</div><select id="pw" class="${K.inp}">${wopt(p.w)}</select><button class="${K.btn}" onclick="okp()">Confirm and add</button></div>`):''}`},
-bill:()=>`<div class="${K.hd}"><div class="${K.h}">Bills</div><button class="${K.btn}" onclick="op('bill')">+ Add bill</button></div><div class="${K.hero}"><div class="${K.mt}">Reserved this period</div><div class="${K.k}">${$(res())}</div></div><div class="${K.card}">${S.b.map(b=>`<div class="${K.row}"><div><b>${E(b.n)}</b><div class="${K.m}">Due ${E(b.d)}</div></div><b>${$(b.a)}</b><button class="${K.danger}" onclick="S.b=S.b.filter(x=>x.id!=${b.id});R()">✕</button></div>`).join('')||`<div class="${K.m}">No bills.</div>`}</div>`,
-ins:()=>{const m={};S.t.filter(t=>t.a<0).forEach(t=>m[t.c]=(m[t.c]||0)-t.a);const inc=S.t.filter(t=>t.a>0).reduce((s,t)=>s+t.a,0),out=Object.values(m).reduce((s,v)=>s+v,0),mx=Math.max(1,...Object.values(m));
-return `<div class="${K.h}">Insights</div><div class="${K.grid}"><div class="${K.card}"><b>Income vs expenses</b><div class="${K.row}"><span>In</span><div class="${K.track}"><i class="${K.barg}" style="width:100%"></i></div><b>${$(inc)}</b></div><div class="${K.row}"><span>Out</span><div class="${K.track}"><i class="${K.bar}" style="width:${inc?Math.min(100,out/inc*100):0}%"></i></div><b>${$(out)}</b></div></div><div class="${K.card}"><b>Top categories</b>${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="${K.row}"><span>${k}</span><div class="${K.track}"><i class="${K.bar}" style="width:${v/mx*100}%"></i></div><b>${$(v)}</b></div>`).join('')||`<div class="${K.m}">No spending yet.</div>`}</div></div>`},
-set:()=>`<div class="${K.h}">Settings</div><div class="${K.card}"><div class="${K.row}"><span>Sign out</span><button class="${K.ghost}" onclick="go('login')">Sign out</button></div><div class="${K.row}"><span>Reset demo data</span><button class="${K.danger}" onclick="S=seed();go('dash')">Reset</button></div></div>`};
-VW.help=()=>`<div class="${K.h}">Help</div><div class="${K.card}"><b>How One Wallet works</b><div class="${K.row}"><span>1. Add your wallets and balances</span></div><div class="${K.row}"><span>2. Paste payment alerts on the Import page</span></div><div class="${K.row}"><span>3. Check your daily runway on the Dashboard</span></div></div><div class="${K.card}"><b>FAQ</b><div class="${K.m} mt-2">Does it connect to my bank? No. It only reads alert text you paste.</div><div class="${K.m} mt-2">Is my data uploaded? No. It stays in this browser.</div><div class="${K.m} mt-2">My balance is off. Open the wallet and use Reconcile balance.</div></div>`;function R(){try{localStorage.setItem('onewallet',JSON.stringify({w:S.w,t:S.t,b:S.b,n:S.n}))}catch(e){}const a=document.getElementById('app');if(S.view=='login'){a.innerHTML=VW.login();return}
-const nav=[['dash','Dashboard'],['wal','Wallets'],['tx','Transactions'],['imp','Import'],['bill','Bills'],['ins','Insights'],['set','Settings'],['help','Help']];
-a.innerHTML=`<div class="flex min-h-screen"><div class="w-[220px] shrink-0 bg-teal-900 px-3.5 py-6 flex flex-col gap-1.5 text-white max-md:hidden"><b class="text-lg mb-5 pl-2">◎ One Wallet</b>${nav.map(([k,l])=>`<a class="${K.nav} ${S.view==k?K.navOn:K.navOff}" onclick="go('${k}')">${l}</a>`).join('')}</div><div class="flex-1 max-w-[1100px] p-8 max-md:p-4 flex flex-col gap-4">${VW[S.view]()}</div></div>${S.modal?`<div class="fixed inset-0 bg-slate-900/50 flex items-center justify-center"><div class="bg-white rounded-[20px] p-7 w-[440px] max-w-[92vw]">${M[S.modal]()}</div></div>`:''}`}
-window.addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(VW[v]){S.view=v;S.wid=0;S.pr=null;S.modal='';R()}});
-S.view=VW[location.hash.slice(1)]?location.hash.slice(1):'login';R();
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>One Wallet</title>
+  <link href="./dist/output.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+  <div id="app"></div>
+  <script>
+  const TODAY='2026-09-30',PAYDAY='2026-10-15',$=n=>'₱'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),
+  E=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),V=id=>document.getElementById(id).value;
+  // Tailwind class sets
+  const K={
+    card:'bg-white border border-slate-200 rounded-2xl p-5 shadow-sm',
+    hero:'bg-teal-700 text-white rounded-2xl p-5 shadow-sm',
+    dark:'bg-teal-900 text-white rounded-2xl p-5 shadow-sm',
+    btn:'bg-teal-700 hover:bg-teal-800 focus:ring-2 focus:ring-teal-500 text-white rounded-lg px-[18px] py-2.5 font-semibold text-sm cursor-pointer transition-colors',
+    ghost:'bg-white hover:bg-teal-50 focus:ring-2 focus:ring-teal-500 text-teal-700 border-[1.5px] border-teal-700 rounded-lg px-[18px] py-2.5 font-semibold text-sm cursor-pointer transition-colors',
+    danger:'bg-white hover:bg-red-50 focus:ring-2 focus:ring-red-400 text-red-700 border border-red-300 rounded-lg min-w-[36px] min-h-[36px] p-2 flex items-center justify-center font-semibold text-sm cursor-pointer transition-colors',
+    row:'flex justify-between items-center py-[11px] text-sm gap-3 border-b border-slate-100',
+    inp:'w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm mt-1 mb-3 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-600',
+    lbl:'block text-xs font-semibold text-slate-700 mt-2 mb-0.5',
+    h:'text-[26px] font-bold text-slate-900',m:'text-[13px] text-slate-600',mt:'text-[13px] text-teal-100 font-medium',k:'text-4xl font-bold tracking-tight',
+    grid:'flex gap-4 flex-wrap [&>*]:flex-1 [&>*]:min-w-[220px]',hd:'flex justify-between items-center',btns:'flex gap-2 flex-wrap mt-2',
+    pill:'inline-block rounded-full px-3.5 py-2 text-xs font-medium cursor-pointer mr-1.5 mb-1.5 transition-colors min-h-[34px] focus:outline-none focus:ring-2 focus:ring-teal-600',
+    track:'h-2 bg-slate-200 rounded-full flex-1',bar:'block h-2 rounded-full bg-amber-500',barg:'block h-2 rounded-full bg-green-700',
+    neg:'font-bold text-red-700',pos:'font-bold text-green-700',
+    nav:'px-3 py-2.5 rounded-lg text-sm cursor-pointer font-medium transition-colors block',navOn:'bg-teal-700 text-white',navOff:'text-teal-100 hover:bg-teal-800 hover:text-white'};
+  const pill=on=>K.pill+(on?' bg-teal-700 text-white':' bg-slate-200 text-slate-700 hover:bg-slate-300');
+  const seed=()=>({view:'login',wid:0,fw:0,modal:'',pr:null,raw:'',n:20,
+    w:[{id:1,n:'GCash',b:1200},{id:2,n:'Maya',b:2100},{id:3,n:'GoTyme',b:800},{id:4,n:'Cash',b:150}],
+    t:[{id:1,d:'09-30',s:'Jollibee',c:'Food',w:1,a:-189},{id:2,d:'09-30',s:'Salary',c:'Income',w:2,a:12000},{id:3,d:'09-29',s:'Load',c:'Load',w:1,a:-50},{id:4,d:'09-29',s:'Grab',c:'Transport',w:1,a:-140}],
+    b:[{id:1,n:'Wi-Fi',a:1299,d:'Oct 5'},{id:2,n:'Spotify',a:200,d:'Oct 9'}]});
+  let S=seed();
+  try{const saved=JSON.parse(localStorage.getItem('onewallet'));if(saved)S={...S,...saved}}catch(e){}
+  const wn=i=>{const w=S.w.find(x=>x.id==i);return w?E(w.n):'?'},
+  tot=()=>S.w.reduce((s,w)=>s+w.b,0),res=()=>S.b.reduce((s,b)=>s+b.a,0),
+  days=()=>Math.round((new Date(PAYDAY)-new Date(TODAY))/864e5),per=()=>Math.max(0,(tot()-res())/days()),
+  go=v=>{if(location.hash=='#'+v){S.view=v;S.wid=0;S.pr=null;R()}else location.hash=v},op=m=>{S.modal=m;R()},
+  wopt=s=>S.w.map(w=>`<option value="${w.id}" ${w.id==s?'selected':''}>${E(w.n)}</option>`).join(''),
+  btns=f=>`<div class="${K.btns}"><button type="button" class="${K.ghost}" onclick="op('')">Cancel</button><button type="button" class="${K.btn}" onclick="${f}">Save</button></div>`;
+  function add(w,a,s,c){S.t.unshift({id:++S.n,d:'09-30',s,c,w:+w,a});S.w.find(z=>z.id==w).b+=a}
+  function del(id){const t=S.t.find(x=>x.id==id);S.w.find(z=>z.id==t.w).b-=t.a;S.t=S.t.filter(x=>x.id!=id);R()}
+  function txRows(l,d){return l.map(t=>`<div class="${K.row}"><span>${t.d}</span><span class="font-medium">${E(t.s)}</span><span class="${K.m}">${t.c} · ${wn(t.w)}</span><b class="${t.a<0?K.neg:K.pos}">${t.a<0?'−':'+'}${$(t.a)}</b>${d?`<button type="button" class="${K.danger}" onclick="del(${t.id})" aria-label="Delete transaction: ${E(t.s)}">✕</button>`:''}</div>`).join('')||`<div class="${K.m}">Nothing here yet.</div>`}
+  const SAMPLES=['GCash: You have paid ₱189.00 to Jollibee. Ref 5012 884 991.','Maya: You received ₱1,500.00 from Juan Dela Cruz.','GoTyme: You sent ₱350.00 to Grab. Ref 88231.'];
+  function fill(i){S.raw=SAMPLES[i];S.pr=null;R()}
+  function rd(){const x=S.raw=V('raw'),a=(x.match(/(?:₱|PHP\s?)\s?([\d,]+(?:\.\d+)?)/i)||[])[1];
+  if(!a){S.pr={err:'No amount found. Try a sample alert.'};return R()}
+  const inn=/received|credited|cash[- ]?in|deposit/i.test(x),out=/paid|sent|transferred|purchase|debited|cash[- ]?out/i.test(x),
+  s=(x.match(/(?:to|from|at)\s+([A-Z][\w&' -]*?)(?:\.|,|\s+Ref|$)/)||[])[1]||'Unknown',
+  w=S.w.find(z=>new RegExp(z.n,'i').test(x)),
+  c=inn&&!out?'Income':/jollibee|mcdo|food|coffee|milk ?tea/i.test(x)?'Food':/grab|angkas|jeep|mrt|lrt/i.test(x)?'Transport':/load|globe|smart/i.test(x)?'Load':/meralco|wifi|water|converge/i.test(x)?'Bills':'Others';
+  S.pr={a:parseFloat(a.replace(/,/g,'')),dir:inn&&!out?1:-1,s,c,w:w?w.id:S.w[0].id};R()}
+  function okp(){const p=S.pr;add(V('pw'),p.a*p.dir,p.s,p.c);S.pr=null;S.raw='';go('tx')}
+  function saveTx(){const a=+V('am');if(!a)return;add(V('mw'),V('ty')*a,V('nt')||'Manual',V('mc'));S.modal='';R()}
+  function saveW(){S.w.push({id:++S.n,n:V('wnm')||'Wallet',b:+V('wb')||0});S.modal='';R()}
+  function saveB(){S.b.push({id:++S.n,n:V('bn')||'Bill',a:+V('ba')||0,d:V('bd')||'-'});S.modal='';R()}
+  function doRec(){const w=S.w.find(x=>x.id==S.wid),d=+V('rb')-w.b;if(d)add(w.id,d,'Reconciliation adjustment','Others');S.modal='';R()}
+  const M={
+    tx:()=>`<h2 id="modal-title" class="${K.h}">Add transaction</h2>
+      <label class="${K.lbl}" for="ty">Transaction type</label>
+      <select id="ty" class="${K.inp}" aria-label="Transaction type"><option value="-1">Expense</option><option value="1">Income</option></select>
+      <label class="${K.lbl}" for="am">Amount (₱)</label>
+      <input id="am" type="number" step="0.01" class="${K.inp}" placeholder="0.00" aria-label="Amount in Pesos">
+      <label class="${K.lbl}" for="mw">Wallet</label>
+      <select id="mw" class="${K.inp}" aria-label="Wallet">${wopt()}</select>
+      <label class="${K.lbl}" for="mc">Category</label>
+      <select id="mc" class="${K.inp}" aria-label="Category">${['Food','Transport','Load','Bills','Others','Income'].map(c=>`<option>${c}</option>`).join('')}</select>
+      <label class="${K.lbl}" for="nt">Note or merchant</label>
+      <input id="nt" class="${K.inp}" placeholder="Note or merchant" aria-label="Note or merchant">
+      ${btns('saveTx()')}`,
+    wal:()=>`<h2 id="modal-title" class="${K.h}">Add wallet</h2>
+      <label class="${K.lbl}" for="wnm">Wallet name</label>
+      <input id="wnm" class="${K.inp}" placeholder="Name (e.g. MariBank)" aria-label="Wallet name">
+      <label class="${K.lbl}" for="wb">Starting balance (₱)</label>
+      <input id="wb" type="number" step="0.01" class="${K.inp}" placeholder="0.00" aria-label="Starting balance">
+      ${btns('saveW()')}`,
+    bill:()=>`<h2 id="modal-title" class="${K.h}">Add bill</h2>
+      <label class="${K.lbl}" for="bn">Bill name</label>
+      <input id="bn" class="${K.inp}" placeholder="Name (e.g. Wi-Fi)" aria-label="Bill name">
+      <label class="${K.lbl}" for="ba">Amount (₱)</label>
+      <input id="ba" type="number" step="0.01" class="${K.inp}" placeholder="0.00" aria-label="Bill amount">
+      <label class="${K.lbl}" for="bd">Due date</label>
+      <input id="bd" class="${K.inp}" placeholder="Due date (e.g. Oct 12)" aria-label="Due date">
+      ${btns('saveB()')}`,
+    rec:()=>{const w=S.w.find(x=>x.id==S.wid);return `<h2 id="modal-title" class="${K.h}">Reconcile ${E(w.n)}</h2>
+      <div class="${K.m} mt-1 mb-3">One Wallet says ${$(w.b)}. Enter what the real app shows.</div>
+      <label class="${K.lbl}" for="rb">Real balance (₱)</label>
+      <input id="rb" type="number" step="0.01" class="${K.inp}" placeholder="Real balance" aria-label="Real balance">
+      ${btns('doRec()')}`}};
+  const VW={
+    login:()=>`<div class="min-h-screen flex"><div class="flex-1 flex flex-col justify-center px-[10%] bg-teal-700 text-white max-md:hidden"><h1 class="text-5xl font-bold">One Wallet</h1><p class="text-teal-100 text-lg mt-2">All your money. One view.</p></div><div class="flex-1 flex flex-col justify-center px-[10%]"><h2 class="${K.h} mb-3">Sign in</h2><label class="${K.lbl}" for="login-email">Email</label><input id="login-email" class="${K.inp}" placeholder="Email" aria-label="Email address" autocomplete="username"><label class="${K.lbl}" for="login-pwd">Password</label><input id="login-pwd" type="password" class="${K.inp}" placeholder="Password" aria-label="Password" autocomplete="current-password"><button type="button" class="${K.btn}" onclick="go('dash')">Sign in</button><div class="${K.m} mt-3">Demo: any input works.</div></div></div>`,
+    dash:()=>`<div class="${K.hd}"><h1 class="${K.h}">Dashboard</h1><button type="button" class="${K.btn}" onclick="op('tx')">+ Add transaction</button></div>
+    <div class="${K.grid}"><div class="${K.hero}"><div class="${K.mt}">Total balance</div><div class="${K.k}">${$(tot())}</div><div class="${K.mt}">across ${S.w.length} wallets</div></div><div class="${K.dark}"><div class="${K.mt}">Runway until Oct 15</div><div class="${K.k}">${$(per())} /day</div><div class="${K.mt}">${days()} days left · bills reserved ${$(res())}</div></div></div>
+    <div class="${K.grid}"><div class="${K.card}"><h2 class="font-bold text-slate-800 mb-2">Recent transactions</h2>${txRows(S.t.slice(0,5))}</div><div class="${K.card}"><h2 class="font-bold text-slate-800 mb-2">Wallets</h2>${S.w.map(w=>`<div class="${K.row}"><span>${E(w.n)}</span><b>${$(w.b)}</b></div>`).join('')}</div></div>`,
+    wal:()=>{const w=S.w.find(x=>x.id==S.wid);return w?`<button type="button" class="${K.m} cursor-pointer hover:text-slate-900 inline-flex items-center gap-1 mb-2 font-medium" onclick="S.wid=0;R()" aria-label="Back to all wallets">‹ Wallets</button><div class="${K.hd}"><h1 class="${K.h}">${E(w.n)}</h1><button type="button" class="${K.btn}" onclick="op('rec')">Reconcile balance</button></div><div class="${K.hero}"><div class="${K.mt}">Balance</div><div class="${K.k}">${$(w.b)}</div></div><div class="${K.card}"><h2 class="font-bold text-slate-800 mb-2">Transactions</h2>${txRows(S.t.filter(t=>t.w==w.id))}</div>`:`<div class="${K.hd}"><h1 class="${K.h}">Wallets</h1><button type="button" class="${K.btn}" onclick="op('wal')">+ Add wallet</button></div><div class="${K.grid}">${S.w.map(w=>`<div class="${K.card} cursor-pointer hover:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-600 transition-all" tabindex="0" role="button" aria-label="Open wallet ${E(w.n)}" onclick="S.wid=${w.id};R()" onkeydown="if(event.key==='Enter'||event.key===' '){S.wid=${w.id};R()}"><b>${E(w.n)}</b><div class="${K.k}">${$(w.b)}</div></div>`).join('')}</div>`},
+    tx:()=>`<div class="${K.hd}"><h1 class="${K.h}">Transactions</h1><button type="button" class="${K.btn}" onclick="op('tx')">+ Add</button></div><div class="flex flex-wrap items-center gap-1"><span class="${pill(S.fw==0)}" tabindex="0" role="button" onclick="S.fw=0;R()" onkeydown="if(event.key==='Enter'||event.key===' '){S.fw=0;R()}">All</span>${S.w.map(w=>`<span class="${pill(S.fw==w.id)}" tabindex="0" role="button" onclick="S.fw=${w.id};R()" onkeydown="if(event.key==='Enter'||event.key===' '){S.fw=${w.id};R()}">${E(w.n)}</span>`).join('')}</div><div class="${K.card}">${txRows(S.t.filter(t=>!S.fw||t.w==S.fw),1)}</div>`,
+    imp:()=>{const p=S.pr;return `<h1 class="${K.h}">Import alerts</h1><div class="${K.m}">Paste a payment alert. One Wallet reads the amount, direction and merchant.</div><div class="${K.card}"><label class="${K.lbl}" for="raw">Paste payment alert SMS or notification</label><textarea id="raw" rows="4" class="${K.inp}" placeholder="Paste alert text here" aria-label="Paste alert text">${E(S.raw)}</textarea><div class="${K.btns}"><button type="button" class="${K.btn}" onclick="rd()">Read alert</button><button type="button" class="${K.ghost}" onclick="fill(0)">Sample: GCash</button><button type="button" class="${K.ghost}" onclick="fill(1)">Sample: Maya</button><button type="button" class="${K.ghost}" onclick="fill(2)">Sample: GoTyme</button></div></div>${p?(p.err?`<div class="${K.card}"><b class="text-red-700">${p.err}</b></div>`:`<div class="${K.card}"><h2 class="font-bold text-slate-800 mb-2">Detected Transaction</h2><div class="${K.row}"><span>Amount</span><b>${$(p.a)}</b></div><div class="${K.row}"><span>Direction</span><b>${p.dir>0?'Income':'Expense'}</b></div><div class="${K.row}"><span>Merchant</span><b>${E(p.s)}</b></div><div class="${K.row}"><span>Category</span><b>${p.c}</b></div><label class="${K.lbl}" for="pw">Assign to wallet</label><select id="pw" class="${K.inp}" aria-label="Select wallet">${wopt(p.w)}</select><button type="button" class="${K.btn} mt-2" onclick="okp()">Confirm and add</button></div>`):''}`},
+    bill:()=>`<div class="${K.hd}"><h1 class="${K.h}">Bills</h1><button type="button" class="${K.btn}" onclick="op('bill')">+ Add bill</button></div><div class="${K.hero}"><div class="${K.mt}">Reserved this period</div><div class="${K.k}">${$(res())}</div></div><div class="${K.card}">${S.b.map(b=>`<div class="${K.row}"><div><b>${E(b.n)}</b><div class="${K.m}">Due ${E(b.d)}</div></div><b>${$(b.a)}</b><button type="button" class="${K.danger}" onclick="S.b=S.b.filter(x=>x.id!=${b.id});R()" aria-label="Delete bill: ${E(b.n)}">✕</button></div>`).join('')||`<div class="${K.m}">No bills.</div>`}</div>`,
+    ins:()=>{const m={};S.t.filter(t=>t.a<0).forEach(t=>m[t.c]=(m[t.c]||0)-t.a);const inc=S.t.filter(t=>t.a>0).reduce((s,t)=>s+t.a,0),out=Object.values(m).reduce((s,v)=>s+v,0),mx=Math.max(1,...Object.values(m));
+    return `<h1 class="${K.h}">Insights</h1><div class="${K.grid}"><div class="${K.card}"><h2 class="font-bold text-slate-800 mb-3">Income vs expenses</h2><div class="${K.row}"><span>In</span><div class="${K.track}"><i class="${K.barg}" style="width:100%"></i></div><b>${$(inc)}</b></div><div class="${K.row}"><span>Out</span><div class="${K.track}"><i class="${K.bar}" style="width:${inc?Math.min(100,out/inc*100):0}%"></i></div><b>${$(out)}</b></div></div><div class="${K.card}"><h2 class="font-bold text-slate-800 mb-3">Top categories</h2>${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="${K.row}"><span>${k}</span><div class="${K.track}"><i class="${K.bar}" style="width:${v/mx*100}%"></i></div><b>${$(v)}</b></div>`).join('')||`<div class="${K.m}">No spending yet.</div>`}</div></div>`},
+    set:()=>`<h1 class="${K.h}">Settings</h1><div class="${K.card}"><div class="${K.row}"><span>Sign out</span><button type="button" class="${K.ghost}" onclick="go('login')">Sign out</button></div><div class="${K.row}"><span>Reset demo data</span><button type="button" class="${K.danger} !px-3" onclick="S=seed();go('dash')">Reset</button></div></div>`};
+  VW.help=()=>`<h1 class="${K.h}">Help</h1><div class="${K.card}"><h2 class="font-bold text-slate-800 mb-2">How One Wallet works</h2><div class="${K.row}"><span>1. Add your wallets and balances</span></div><div class="${K.row}"><span>2. Paste payment alerts on the Import page</span></div><div class="${K.row}"><span>3. Check your daily runway on the Dashboard</span></div></div><div class="${K.card}"><h2 class="font-bold text-slate-800 mb-2">FAQ</h2><div class="${K.m} mt-2"><b class="text-slate-800">Does it connect to my bank?</b> No. It only reads alert text you paste.</div><div class="${K.m} mt-2"><b class="text-slate-800">Is my data uploaded?</b> No. It stays in this browser.</div><div class="${K.m} mt-2"><b class="text-slate-800">My balance is off.</b> Open the wallet and use Reconcile balance.</div></div>`;
+  function R(){
+    try{localStorage.setItem('onewallet',JSON.stringify({w:S.w,t:S.t,b:S.b,n:S.n}))}catch(e){}
+    const a=document.getElementById('app');
+    if(S.view=='login'){a.innerHTML=VW.login();return}
+    const nav=[['dash','Dashboard'],['wal','Wallets'],['tx','Transactions'],['imp','Import'],['bill','Bills'],['ins','Insights'],['set','Settings'],['help','Help']];
+    a.innerHTML=`<div class="flex min-h-screen"><nav aria-label="Main Navigation" class="w-[220px] shrink-0 bg-teal-900 px-3.5 py-6 flex flex-col gap-1.5 text-white max-md:hidden"><b class="text-lg mb-5 pl-2">◎ One Wallet</b>${nav.map(([k,l])=>`<a href="#${k}" class="${K.nav} ${S.view==k?K.navOn:K.navOff}" onclick="go('${k}')">${l}</a>`).join('')}</nav><main class="flex-1 max-w-[1100px] p-8 max-md:p-4 flex flex-col gap-4">${VW[S.view]()}</main></div>${S.modal?`<div class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="if(event.target===this)op('')"><div class="bg-white rounded-[20px] p-7 w-[440px] max-w-full shadow-2xl">${M[S.modal]()}</div></div>`:''}`
+  }
+  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.modal)op('')});
+  window.addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(VW[v]){S.view=v;S.wid=0;S.pr=null;S.modal='';R()}});
+  S.view=VW[location.hash.slice(1)]?location.hash.slice(1):'login';R();
+  </script>
+</body>
+</html>
