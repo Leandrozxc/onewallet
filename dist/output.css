@@ -804,6 +804,9 @@
     --tw-tracking: -0.02em;
     letter-spacing: -0.02em;
   }
+  .text-balance {
+    text-wrap: balance;
+  }
   .whitespace-nowrap {
     white-space: nowrap;
   }
