@@ -3,12 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#F8FAFC">
+  <meta name="theme-color" content="#F6F7F9">
   <title>One Wallet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="./dist/output.css" rel="stylesheet">
+  <link href="./dist/output.css?v=20261115" rel="stylesheet">
+  <style>
+    /* Critical fallback tokens & shell rules so cached/delayed CSS never breaks layout or icon sizing */
+    :root {
+      --color-paper: #F6F7F9;
+      --color-card: #FFFFFF;
+      --color-subtle: #F1F3F6;
+      --color-line: #E2E6ED;
+      --color-track: #E5E9F0;
+      --color-ink: #0F172A;
+      --color-ink-2: #334155;
+      --color-mute: #475569;
+      --color-accent: #1D5FBF;
+      --color-marigold: #D97706;
+      --color-gain: #15803D;
+      --color-alert: #B91C1C;
+    }
+    body { background-color: #F6F7F9; color: #0F172A; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif; margin: 0; }
+    svg { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+    .tnum { font-variant-numeric: tabular-nums; }
+  </style>
 </head>
 <body class="bg-paper text-ink font-sans antialiased">
 <div id="app"></div>
@@ -19,6 +39,7 @@ const PAYDAY = '2026-10-15';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const CATEGORIES = ['Food', 'Transport', 'Load', 'Bills', 'Income', 'Others'];
 
+const pad2 = n => (n < 10 ? '0' : '') + n;
 const peso = n => '₱' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const signed = n => (n < 0 ? '− ' : '+ ') + peso(n);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -27,14 +48,14 @@ const shortDate = md => { const [m, d] = md.split('-').map(Number); return `${MO
 const dayLabel = md => {
   const today = TODAY.slice(5);
   const y = new Date(TODAY); y.setDate(y.getDate() - 1);
-  const yesterday = String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0');
+  const yesterday = pad2(y.getMonth() + 1) + '-' + pad2(y.getDate());
   if (md === today) return `Today · ${shortDate(md)}`;
   if (md === yesterday) return `Yesterday · ${shortDate(md)}`;
   return shortDate(md);
 };
 
-/* ---------- Icons (one 1.5px line family) ---------- */
-const icon = (d, cls = 'w-5 h-5') => `<svg class="${cls} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+/* ---------- Icons (one 1.5px line family with explicit HTML width/height fallback) ---------- */
+const icon = (d, cls = 'w-5 h-5', sz = 18) => `<svg width="${sz}" height="${sz}" class="${cls} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const I = {
   today: '<path d="M4 5h16v15H4z"/><path d="M4 9h16M9 3v4M15 3v4"/>',
   ledger: '<path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
@@ -51,16 +72,16 @@ const I = {
 /* ---------- Shared class vocabulary ---------- */
 const C = {
   card: 'bg-card border border-line rounded-card',
-  btn: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-ink text-card text-[15px] font-medium hover:bg-ink-2 active:scale-[0.97] transition-[transform,background-color] duration-100 cursor-pointer',
-  btn2: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-card text-ink border border-ink text-[15px] font-medium hover:bg-paper active:scale-[0.97] transition-[transform,background-color] duration-100 cursor-pointer',
-  btnDanger: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-alert text-card text-[15px] font-medium hover:opacity-90 active:scale-[0.97] transition-transform duration-100 cursor-pointer',
-  link: 'text-[15px] font-medium text-ink underline-offset-4 hover:underline cursor-pointer',
-  iconBtn: 'inline-flex items-center justify-center w-9 h-9 rounded-ctl text-mute hover:text-ink hover:bg-paper cursor-pointer',
+  btn: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-ink text-card text-sm font-medium hover:bg-ink-2 active:scale-[0.98] transition-[transform,background-color] duration-100 cursor-pointer',
+  btn2: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-card text-ink border border-line text-sm font-medium hover:bg-subtle hover:border-ink/30 active:scale-[0.98] transition-[transform,background-color,border-color] duration-100 cursor-pointer',
+  btnDanger: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-alert text-card text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-transform duration-100 cursor-pointer',
+  link: 'text-sm font-medium text-ink-2 hover:text-ink underline-offset-4 hover:underline cursor-pointer',
+  iconBtn: 'inline-flex items-center justify-center w-8 h-8 rounded-ctl text-mute hover:text-ink hover:bg-subtle cursor-pointer',
   label: 'block text-sm font-medium text-ink mb-1.5',
   input: 'w-full h-10 px-3 rounded-ctl bg-card border border-line text-[15px] text-ink placeholder:text-mute focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink aria-[invalid=true]:border-alert aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-alert',
-  cardTitle: 'text-lg font-semibold text-ink',
-  meta: 'text-sm text-mute',
-  h1: 'text-[30px] leading-tight font-semibold text-ink tracking-[-0.01em] text-balance'
+  cardTitle: 'text-base font-semibold text-ink tracking-[-0.01em]',
+  meta: 'text-xs text-mute',
+  h1: 'text-[22px] md:text-[24px] leading-tight font-semibold text-ink tracking-[-0.015em] text-balance'
 };
 
 /* ---------- State ---------- */
@@ -164,7 +185,7 @@ const field = (id, label, input, hint = '') => {
   return `<div class="mb-4">
     <label class="${C.label}" for="${id}">${label}</label>
     ${input}
-    ${err ? `<p id="${id}-err" class="mt-1.5 text-sm text-alert">${esc(err)}</p>` : hint ? `<p class="mt-1.5 text-sm text-mute">${hint}</p>` : ''}
+    ${err ? `<p id="${id}-err" class="mt-1.5 text-xs text-alert">${esc(err)}</p>` : hint ? `<p class="mt-1.5 ${C.meta}">${hint}</p>` : ''}
   </div>`;
 };
 const inputAttrs = id => `id="${id}" name="${id}" class="${C.input}" ${S.errors[id] ? `aria-invalid="true" aria-describedby="${id}-err"` : ''}`;
@@ -172,14 +193,14 @@ const draft = (id, fallback = '') => esc(S.draft[id] ?? fallback);
 const walletOptions = sel => S.w.map(w => `<option value="${w.id}" ${w.id == sel ? 'selected' : ''}>${esc(w.n)}</option>`).join('');
 
 function txRow(t, deletable) {
-  return `<li class="flex items-center gap-3 py-[7px]">
-    <span class="w-[34px] h-[34px] rounded-full bg-track text-ink-2 text-[15px] font-medium flex items-center justify-center shrink-0" aria-hidden="true">${esc(t.s.charAt(0).toUpperCase())}</span>
+  return `<li class="flex items-center gap-3 py-3 border-b border-line/60 last:border-b-0">
+    <span class="w-8 h-8 rounded-full bg-subtle text-ink-2 text-xs font-semibold flex items-center justify-center shrink-0" aria-hidden="true">${esc(t.s.charAt(0).toUpperCase())}</span>
     <div class="min-w-0 flex-1">
-      <div class="text-base text-ink truncate">${esc(t.s)}</div>
+      <div class="text-sm font-medium text-ink truncate">${esc(t.s)}</div>
       <div class="${C.meta} truncate">${esc(t.c)} · ${walletName(t.w)}</div>
     </div>
-    <span class="tnum text-base font-medium whitespace-nowrap ${t.a > 0 ? 'text-gain' : 'text-ink'}">${signed(t.a)}</span>
-    ${deletable ? `<button type="button" class="${C.iconBtn} -mr-2" onclick="delTx(${t.id})" aria-label="Delete ${esc(t.s)}, ${signed(t.a)}">${icon(I.trash, 'w-[18px] h-[18px]')}</button>` : ''}
+    <span class="tnum text-sm font-semibold whitespace-nowrap ${t.a > 0 ? 'text-gain' : 'text-ink'}">${signed(t.a)}</span>
+    ${deletable ? `<button type="button" class="${C.iconBtn} -mr-1.5" onclick="delTx(${t.id})" aria-label="Delete ${esc(t.s)}, ${signed(t.a)}">${icon(I.trash, 'w-4 h-4', 16)}</button>` : ''}
   </li>`;
 }
 function ledgerList(list, { deletable = false, limit = Infinity, empty = 'No entries yet.' } = {}) {
@@ -187,30 +208,30 @@ function ledgerList(list, { deletable = false, limit = Infinity, empty = 'No ent
   if (!rows.length) return `<p class="py-8 text-center ${C.meta}">${empty}</p>`;
   const groups = [];
   rows.forEach(t => { const g = groups.at(-1); if (g && g.d === t.d) g.items.push(t); else groups.push({ d: t.d, items: [t] }); });
-  return groups.map(g => `<section class="mt-3 first:mt-1">
-    <h3 class="text-[15px] font-medium text-ink pb-0.5">${dayLabel(g.d)}</h3>
+  return groups.map(g => `<section class="mt-4 first:mt-1.5">
+    <h3 class="text-xs font-semibold text-ink-2 pb-1">${dayLabel(g.d)}</h3>
     <ul>${g.items.map(t => txRow(t, deletable)).join('')}</ul>
   </section>`).join('');
 }
 const pageHead = (title, sub, actions = '') => `
-  <header class="flex flex-wrap items-center justify-between gap-4 mb-4">
+  <header class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-line">
     <div>
-      ${sub ? `<p class="text-[15px] text-ink-2 mb-0.5">${sub}</p>` : ''}
+      ${sub ? `<p class="text-xs font-medium text-mute mb-0.5">${sub}</p>` : ''}
       <h1 class="${C.h1}">${title}</h1>
     </div>
-    ${actions ? `<div class="flex gap-2.5">${actions}</div>` : ''}
+    ${actions ? `<div class="flex items-center gap-2">${actions}</div>` : ''}
   </header>`;
-const cardHead = (title, action = '') => `<div class="flex items-center justify-between mb-1"><h2 class="${C.cardTitle}">${title}</h2>${action}</div>`;
+const cardHead = (title, action = '') => `<div class="flex items-center justify-between mb-1.5"><h2 class="${C.cardTitle}">${title}</h2>${action}</div>`;
 const longDate = () => new Date(TODAY).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
 /* ---------- Dialogs ---------- */
 const dialogShell = (title, body, actions) => `
-  <div class="flex items-center justify-between mb-5">
-    <h2 id="modal-title" class="text-xl font-semibold text-ink">${title}</h2>
-    <button type="button" class="${C.iconBtn} -mr-2" onclick="closeModal()" aria-label="Close">${icon(I.close)}</button>
+  <div class="flex items-center justify-between mb-4 pb-3 border-b border-line">
+    <h2 id="modal-title" class="text-lg font-semibold text-ink">${title}</h2>
+    <button type="button" class="${C.iconBtn} -mr-1.5" onclick="closeModal()" aria-label="Close">${icon(I.close, 'w-4 h-4', 16)}</button>
   </div>
   ${body}
-  <div class="flex justify-end gap-2.5 mt-6">${actions}</div>`;
+  <div class="flex justify-end gap-2.5 mt-6 pt-3 border-t border-line">${actions}</div>`;
 const cancelBtn = `<button type="button" class="${C.btn2}" onclick="closeModal()">Cancel</button>`;
 
 const M = {
@@ -243,13 +264,13 @@ const M = {
   reconcile: () => {
     const w = S.w.find(x => x.id == S.wid);
     return dialogShell(`Correct ${esc(w.n)} balance`, `
-      <p class="text-[15px] text-ink-2 mb-4">One Wallet has <b class="tnum font-semibold text-ink">${peso(w.b)}</b>. Enter what the ${esc(w.n)} app actually shows, and we’ll add a correction entry for the difference.</p>
+      <p class="text-sm text-ink-2 mb-4">One Wallet has <b class="tnum font-semibold text-ink">${peso(w.b)}</b>. Enter what the ${esc(w.n)} app actually shows, and we’ll add a correction entry for the difference.</p>
       ${field('rb', 'Balance in the app', `<input ${inputAttrs('rb')} type="number" inputmode="decimal" step="0.01" placeholder="${w.b.toFixed(2)}" value="${draft('rb')}" data-autofocus>`)}`,
       `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveReconcile()">Save correction</button>`);
   },
 
   reset: () => dialogShell('Reset demo data?', `
-    <p class="text-[15px] text-ink-2">This replaces every wallet, entry and bill in this browser with the original sample data. It can’t be undone.</p>`,
+    <p class="text-sm text-ink-2">This replaces every wallet, entry and bill in this browser with the original sample data. It can’t be undone.</p>`,
     `${cancelBtn}<button type="button" class="${C.btnDanger}" onclick="resetData()" data-autofocus>Reset data</button>`)
 };
 
@@ -258,66 +279,95 @@ const V = {
   login: () => `
     <main class="min-h-dvh flex items-center justify-center p-6">
       <div class="w-full max-w-[400px]">
-        <div class="flex items-center gap-2.5 mb-8">
-          <span class="w-8 h-8 rounded-ctl bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-3.5 h-2.5 rounded-[2px] bg-card"></span></span>
-          <span class="text-lg font-semibold">One Wallet</span>
+        <div class="flex items-center gap-2.5 mb-7">
+          <span class="w-7 h-7 rounded-ctl bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-3 h-2 rounded-[2px] bg-card"></span></span>
+          <span class="text-base font-semibold tracking-[-0.01em]">One Wallet</span>
         </div>
         <h1 class="${C.h1} mb-2">Know what you can spend today.</h1>
-        <p class="text-[15px] text-ink-2 mb-6">GCash, Maya, GoTyme and cash in one ledger, with bills set aside and a safe daily amount until payday.</p>
+        <p class="text-sm text-ink-2 mb-6">GCash, Maya, GoTyme and cash in one passbook ledger, with bills quarantined and a clear daily allowance until payday.</p>
         <div class="${C.card} p-5">
           ${field('login-email', 'Email', `<input id="login-email" class="${C.input}" type="email" autocomplete="username" value="demo@onewallet.ph">`)}
           ${field('login-pwd', 'Password', `<input id="login-pwd" class="${C.input}" type="password" autocomplete="current-password" value="demo1234">`)}
-          <button type="button" class="${C.btn} w-full" onclick="signIn()">Sign in</button>
+          <button type="button" class="${C.btn} w-full" onclick="signIn()">Open workspace</button>
         </div>
-        <p class="${C.meta} mt-4">Demo build: any email works. Data stays in this browser.</p>
+        <p class="${C.meta} mt-4">Local-first demo: any email works and all records stay in this browser.</p>
       </div>
     </main>`,
 
   today: () => {
-    const tot = total(), nb = S.b.length;
-   return `
-      ${pageHead('Today', longDate(), `
+    const tot = total(), res = reserved(), fr = free(), dl = daysLeft(), nb = S.b.length;
+    const freePct = tot > 0 ? Math.min(100, Math.round(fr / tot * 100)) : 0;
+    const resPct = tot > 0 ? Math.min(100 - freePct, Math.round(res / tot * 100)) : 0;
+    return `
+      ${pageHead('Today', `${longDate()} · Payday cycle`, `
         <button type="button" class="${C.btn2} max-sm:hidden" onclick="go('import')">Import alert</button>
-        <button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-[18px] h-[18px]')}Add entry</button>`)}
+        <button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-4 h-4', 16)}Add entry</button>`)}
 
-      <section class="bg-marigold rounded-card px-4 py-[9px] flex flex-wrap items-center justify-between gap-x-10 gap-y-4 mb-4" aria-labelledby="runway-label">
-        <div>
-          <p id="runway-label" class="text-base text-ink">Safe to spend per day</p>
-          <p class="tnum text-[48px] leading-[1.1] font-semibold tracking-[-0.02em] my-0.5">${peso(perDay())}</p>
-          <p class="text-base text-ink">for the next ${daysLeft()} days, until payday on ${shortDate(PAYDAY.slice(5))}</p>
+      <section class="${C.card} p-5 mb-5" aria-labelledby="runway-label">
+        <div class="grid gap-6 lg:grid-cols-[1.28fr_1fr] items-center">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="w-2 h-2 rounded-full bg-gain" aria-hidden="true"></span>
+              <p id="runway-label" class="text-sm font-semibold text-ink">Safe to spend per day</p>
+              <span class="text-xs text-mute">· ${dl} days until ${shortDate(PAYDAY.slice(5))}</span>
+            </div>
+            <div class="flex items-baseline gap-2 my-1">
+              <p class="tnum text-[38px] md:text-[42px] leading-[1.08] font-semibold tracking-[-0.025em] text-ink">${peso(perDay())}</p>
+              <span class="text-sm text-mute font-medium">/ day</span>
+            </div>
+            <p class="text-sm text-ink-2 mb-4">After setting aside <span class="tnum font-medium text-ink">${peso(res)}</span> for ${nb} upcoming bill${nb === 1 ? '' : 's'}, you have <span class="tnum font-medium text-ink">${peso(fr)}</span> free across ${S.w.length} wallet${S.w.length === 1 ? '' : 's'}.</p>
+
+            <div>
+              <div class="flex justify-between text-xs text-ink-2 mb-1.5 tnum">
+                <span>Free to spend · ${freePct}% (${peso(fr)})</span>
+                <span>Bills set aside · ${resPct}% (${peso(res)})</span>
+              </div>
+              <div class="h-2 rounded-full bg-track overflow-hidden flex gap-0.5" role="img" aria-label="${freePct}% free to spend, ${resPct}% set aside for bills">
+                <span class="block h-full bg-ink transition-[width] duration-200" style="width:${freePct}%"></span>
+                <span class="block h-full bg-mute/45 transition-[width] duration-200" style="width:${resPct}%"></span>
+              </div>
+            </div>
+          </div>
+
+          <dl class="tnum text-sm max-lg:border-t max-lg:pt-4 lg:border-l border-line lg:pl-6 space-y-2.5">
+            <div class="flex justify-between"><dt class="text-ink-2">Across ${S.w.length} wallet${S.w.length === 1 ? '' : 's'}</dt><dd class="font-medium text-ink">${peso(tot)}</dd></div>
+            <div class="flex justify-between border-b border-line pb-2.5"><dt class="text-ink-2">Set aside for ${nb} bill${nb === 1 ? '' : 's'}</dt><dd class="text-ink-2">− ${peso(res)}</dd></div>
+            <div class="flex justify-between pt-0.5"><dt class="text-ink-2">Free until ${shortDate(PAYDAY.slice(5))}</dt><dd class="font-medium text-ink">${peso(fr)}</dd></div>
+            <div class="flex justify-between pt-2 border-t border-line font-semibold text-ink"><dt>Daily allowance (÷ ${dl}d)</dt><dd>${peso(perDay())} / day</dd></div>
+          </dl>
         </div>
-        <dl class="tnum text-base w-full sm:w-[330px]">
-          <div class="flex justify-between py-0.5"><dt>Across ${S.w.length} wallet${S.w.length === 1 ? '' : 's'}</dt><dd>${peso(tot)}</dd></div>
-          <div class="flex justify-between py-0.5 border-b border-ink/80 pb-1"><dt>Set aside for ${nb} bill${nb === 1 ? '' : 's'}</dt><dd>− ${peso(reserved())}</dd></div>
-          <div class="flex justify-between pt-1.5 py-0.5"><dt>Free to spend</dt><dd>${peso(free())}</dd></div>
-          <div class="flex justify-between py-0.5 font-semibold"><dt class="font-normal">÷ ${daysLeft()} days</dt><dd>${peso(perDay())} / day</dd></div>
-        </dl>
       </section>
 
-      <div class="grid gap-4 lg:grid-cols-[1.23fr_1fr] items-start">
-        <section class="${C.card} px-4 pt-4 pb-2">
-          ${cardHead('Ledger', `<a href="#ledger" class="${C.link}">See all</a>`)}
-          ${ledgerList(S.t, { limit: 5, empty: 'No entries yet. Add one or import an alert.' })}
+      <div class="grid gap-4 lg:grid-cols-[1.28fr_1fr] items-stretch">
+        <section class="${C.card} p-4 flex flex-col justify-between h-full">
+          <div>
+            ${cardHead('Recent ledger', `<a href="#ledger" class="${C.link}">All entries</a>`)}
+            ${ledgerList(S.t, { limit: 5, empty: 'No entries yet. Add one or import an alert.' })}
+          </div>
+          <div class="flex items-center justify-between pt-2.5 mt-2 border-t border-line text-xs text-mute">
+            <span>Showing ${Math.min(5, S.t.length)} of ${S.t.length} entries</span>
+            <a href="#import" class="${C.link} text-xs">Paste SMS alert →</a>
+          </div>
         </section>
 
-        <div class="grid gap-4">
+        <div class="flex flex-col gap-4 h-full">
           <section class="${C.card} p-4">
-            ${cardHead('Wallets', `<button type="button" class="${C.link} inline-flex items-center gap-1" onclick="openModal('wallet')">${icon(I.plus, 'w-4 h-4')}Add</button>`)}
-            <ul class="mt-2">
+            ${cardHead('Wallets', `<button type="button" class="${C.link} inline-flex items-center gap-1" onclick="openModal('wallet')">${icon(I.plus, 'w-3.5 h-3.5', 14)}Add</button>`)}
+            <ul class="mt-1.5 space-y-1.5">
               ${S.w.map(w => `<li>
-                <button type="button" class="w-full text-left py-0 group cursor-pointer" onclick="openWallet(${w.id})" aria-label="${esc(w.n)}, ${peso(w.b)}. Open wallet">
-                  <span class="flex justify-between text-base"><span class="group-hover:underline underline-offset-4">${esc(w.n)}</span><span class="tnum">${peso(w.b)}</span></span>
-                  <span class="block h-[3px] mt-1 rounded-full bg-track overflow-hidden"><span class="block h-full rounded-full bg-ink" style="width:${tot > 0 ? Math.max(0, w.b) / tot * 100 : 0}%"></span></span>
+                <button type="button" class="w-full text-left group cursor-pointer" onclick="openWallet(${w.id})" aria-label="${esc(w.n)}, ${peso(w.b)}. Open wallet">
+                  <span class="flex justify-between text-sm"><span class="font-medium text-ink group-hover:underline underline-offset-4">${esc(w.n)}</span><span class="tnum font-medium text-ink">${peso(w.b)}</span></span>
+                  <span class="block h-1 mt-1 rounded-full bg-track overflow-hidden"><span class="block h-full rounded-full bg-ink" style="width:${tot > 0 ? Math.max(0, w.b) / tot * 100 : 0}%"></span></span>
                 </button>
-              </li>`).join('') || `<li class="py-4 ${C.meta}">No wallets yet.</li>`}
+              </li>`).join('') || `<li class="py-3 ${C.meta}">No wallets yet.</li>`}
             </ul>
-            <div class="flex justify-between text-base font-medium pt-2 mt-1 border-t border-line"><span>Total</span><span class="tnum">${peso(tot)}</span></div>
+            <div class="flex justify-between text-sm font-semibold pt-2 mt-2 border-t border-line"><span>Total balance</span><span class="tnum">${peso(tot)}</span></div>
           </section>
 
-          <section class="${C.card} p-4">
+          <section class="${C.card} p-4 flex-1 flex flex-col justify-between">
             ${cardHead('Bills set aside', `<a href="#bills" class="${C.link}">Manage</a>`)}
-            <ul class="mt-1">
-              ${S.b.map(b => `<li class="flex justify-between text-base py-1.5"><span>${esc(b.n)} <span class="text-mute">· due ${esc(b.d)}</span></span><span class="tnum">${peso(b.a)}</span></li>`).join('') || `<li class="py-3 ${C.meta}">Nothing set aside.</li>`}
+            <ul class="divide-y divide-line/60">
+              ${S.b.map(b => `<li class="flex justify-between text-sm py-2"><span><span class="font-medium text-ink">${esc(b.n)}</span> <span class="text-xs text-mute">· due ${esc(b.d)}</span></span><span class="tnum font-medium text-ink">${peso(b.a)}</span></li>`).join('') || `<li class="py-2 ${C.meta}">Nothing set aside.</li>`}
             </ul>
           </section>
         </div>
@@ -329,29 +379,29 @@ const V = {
     if (w) {
       const list = S.t.filter(t => t.w == w.id);
       return `
-        <button type="button" class="${C.link} inline-flex items-center gap-1 mb-3 -ml-1" onclick="S.wid=0;R()">${icon(I.back, 'w-4 h-4')}All wallets</button>
-        ${pageHead(esc(w.n), 'Wallet', `<button type="button" class="${C.btn2}" onclick="openModal('reconcile')">Correct balance</button>`)}
-        <section class="${C.card} p-5 mb-4">
-          <p class="text-base text-ink-2">Balance in One Wallet</p>
-          <p class="tnum text-[40px] leading-tight font-semibold tracking-[-0.02em]">${peso(w.b)}</p>
-          <p class="${C.meta} mt-1">${list.length} entr${list.length === 1 ? 'y' : 'ies'} · If this differs from the ${esc(w.n)} app, use Correct balance.</p>
+        <button type="button" class="${C.link} inline-flex items-center gap-1 mb-3 -ml-1" onclick="S.wid=0;R()">${icon(I.back, 'w-4 h-4', 16)}All wallets</button>
+        ${pageHead(esc(w.n), 'Wallet account', `<button type="button" class="${C.btn2}" onclick="openModal('reconcile')">Correct balance</button>`)}
+        <section class="${C.card} p-5 mb-5">
+          <p class="text-sm font-medium text-ink-2">Recorded balance</p>
+          <p class="tnum text-[36px] leading-tight font-semibold tracking-[-0.02em] my-1">${peso(w.b)}</p>
+          <p class="${C.meta}">${list.length} entr${list.length === 1 ? 'y' : 'ies'} · If this differs from the ${esc(w.n)} app, use Correct balance.</p>
         </section>
-        <section class="${C.card} px-4 pt-4 pb-2">
+        <section class="${C.card} p-5">
           ${cardHead('Entries')}
           ${ledgerList(list, { deletable: true, empty: `No entries for ${esc(w.n)} yet.` })}
         </section>`;
     }
     const tot = total();
     return `
-      ${pageHead('Wallets', `${S.w.length} wallets · ${peso(tot)} total`, `<button type="button" class="${C.btn}" onclick="openModal('wallet')">${icon(I.plus, 'w-[18px] h-[18px]')}Add wallet</button>`)}
+      ${pageHead('Wallets', `${S.w.length} wallets · ${peso(tot)} total`, `<button type="button" class="${C.btn}" onclick="openModal('wallet')">${icon(I.plus, 'w-4 h-4', 16)}Add wallet</button>`)}
       <section class="${C.card}">
         <ul class="divide-y divide-line">
           ${S.w.map(w => {
             const count = S.t.filter(t => t.w == w.id).length;
-            return `<li><button type="button" class="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-paper cursor-pointer" onclick="openWallet(${w.id})">
-              <span class="flex-1 min-w-0"><span class="block text-base font-medium">${esc(w.n)}</span><span class="block ${C.meta}">${count} entr${count === 1 ? 'y' : 'ies'} · ${tot > 0 ? Math.round(Math.max(0, w.b) / tot * 100) : 0}% of total</span></span>
-              <span class="tnum text-base">${peso(w.b)}</span>
-              <span class="text-mute">${icon(I.chevron, 'w-4 h-4')}</span>
+            return `<li><button type="button" class="w-full flex items-center gap-4 px-5 py-3.5 text-left hover:bg-subtle/60 cursor-pointer" onclick="openWallet(${w.id})">
+              <span class="flex-1 min-w-0"><span class="block text-sm font-semibold text-ink">${esc(w.n)}</span><span class="block ${C.meta}">${count} entr${count === 1 ? 'y' : 'ies'} · ${tot > 0 ? Math.round(Math.max(0, w.b) / tot * 100) : 0}% of total</span></span>
+              <span class="tnum text-sm font-semibold text-ink">${peso(w.b)}</span>
+              <span class="text-mute">${icon(I.chevron, 'w-4 h-4', 16)}</span>
             </button></li>`;
           }).join('') || `<li class="p-8 text-center ${C.meta}">Add your first wallet to start.</li>`}
         </ul>
@@ -360,11 +410,11 @@ const V = {
 
   ledger: () => {
     const list = S.t.filter(t => !S.fw || t.w == S.fw);
-    const chip = (id, label) => `<button type="button" role="radio" aria-checked="${S.fw == id}" class="h-9 px-3.5 rounded-full text-[15px] border cursor-pointer ${S.fw == id ? 'bg-ink text-card border-ink' : 'bg-card text-ink border-line hover:border-ink'}" onclick="S.fw=${id};R()">${label}</button>`;
+    const chip = (id, label) => `<button type="button" role="radio" aria-checked="${S.fw == id}" class="h-8 px-3.5 rounded-full text-xs font-medium border cursor-pointer ${S.fw == id ? 'bg-ink text-card border-ink' : 'bg-card text-ink-2 border-line hover:border-ink/40 hover:text-ink'}" onclick="S.fw=${id};R()">${label}</button>`;
     return `
-      ${pageHead('Ledger', `${S.t.length} entries`, `<button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-[18px] h-[18px]')}Add entry</button>`)}
+      ${pageHead('Ledger', `${S.t.length} recorded entries`, `<button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-4 h-4', 16)}Add entry</button>`)}
       <div role="radiogroup" aria-label="Filter by wallet" class="flex flex-wrap gap-2 mb-4">${chip(0, 'All wallets')}${S.w.map(w => chip(w.id, esc(w.n))).join('')}</div>
-      <section class="${C.card} px-4 pt-3 pb-2">
+      <section class="${C.card} p-5">
         ${ledgerList(list, { deletable: true, empty: S.fw ? 'No entries for this wallet.' : 'No entries yet. Add one or import an alert.' })}
       </section>`;
   },
@@ -372,25 +422,25 @@ const V = {
   import: () => {
     const p = S.pr;
     return `
-      ${pageHead('Import alert', 'Turn a payment SMS into an entry')}
-      <section class="${C.card} p-5 mb-4">
+      ${pageHead('Import alert', 'Turn a payment SMS or notification into a ledger entry')}
+      <section class="${C.card} p-5 mb-5">
         <label class="${C.label}" for="raw">Paste the alert text</label>
         <textarea id="raw" rows="3" class="${C.input} h-auto py-2.5 leading-relaxed resize-y" placeholder="GCash: You have paid ₱189.00 to Jollibee. Ref 5012 884 991.">${esc(S.raw)}</textarea>
         <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
           <button type="button" class="${C.btn}" onclick="readAlert()">Read alert</button>
           <div class="flex flex-wrap items-center gap-2"><span class="${C.meta}">Try a sample:</span>
-            ${['GCash', 'Maya', 'GoTyme'].map((n, i) => `<button type="button" class="h-8 px-3 rounded-full text-sm border border-line bg-card hover:border-ink cursor-pointer" onclick="fillSample(${i})">${n}</button>`).join('')}
+            ${['GCash', 'Maya', 'GoTyme'].map((n, i) => `<button type="button" class="h-7 px-3 rounded-full text-xs font-medium border border-line bg-subtle/60 hover:border-ink/40 cursor-pointer" onclick="fillSample(${i})">${n}</button>`).join('')}
           </div>
         </div>
       </section>
       ${p ? p.err ? `
-        <div role="alert" class="${C.card} border-alert p-4 text-[15px] text-alert">${esc(p.err)}</div>` : `
+        <div role="alert" class="${C.card} border-alert p-4 text-sm text-alert">${esc(p.err)}</div>` : `
         <section class="${C.card} p-5" aria-labelledby="found">
-          <h2 id="found" class="${C.cardTitle} mb-3">Here’s what we found</h2>
-          <dl class="tnum text-base divide-y divide-line border-y border-line mb-5">
-            <div class="flex justify-between py-2"><dt class="text-ink-2">Amount</dt><dd class="font-medium ${p.dir > 0 ? 'text-gain' : ''}">${signed(p.a * p.dir)}</dd></div>
+          <h2 id="found" class="${C.cardTitle} mb-3">Parsed transaction</h2>
+          <dl class="tnum text-sm divide-y divide-line border-y border-line mb-5">
+            <div class="flex justify-between py-2"><dt class="text-ink-2">Amount</dt><dd class="font-semibold ${p.dir > 0 ? 'text-gain' : 'text-ink'}">${signed(p.a * p.dir)}</dd></div>
             <div class="flex justify-between py-2"><dt class="text-ink-2">Type</dt><dd>${p.dir > 0 ? 'Income' : 'Expense'}</dd></div>
-            <div class="flex justify-between py-2"><dt class="text-ink-2">${p.dir > 0 ? 'From' : 'To'}</dt><dd>${esc(p.s)}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-ink-2">${p.dir > 0 ? 'From' : 'To'}</dt><dd class="font-medium">${esc(p.s)}</dd></div>
             <div class="flex justify-between py-2"><dt class="text-ink-2">Category</dt><dd>${esc(p.c)}</dd></div>
           </dl>
           <div class="flex flex-wrap items-end gap-3">
@@ -401,16 +451,16 @@ const V = {
   },
 
   bills: () => `
-    ${pageHead('Bills', `${peso(reserved())} set aside until payday`, `<button type="button" class="${C.btn}" onclick="openModal('bill')">${icon(I.plus, 'w-[18px] h-[18px]')}Set aside a bill</button>`)}
+    ${pageHead('Bills', `${peso(reserved())} set aside until payday`, `<button type="button" class="${C.btn}" onclick="openModal('bill')">${icon(I.plus, 'w-4 h-4', 16)}Set aside a bill</button>`)}
     <section class="${C.card}">
       <ul class="divide-y divide-line">
-        ${S.b.map(b => `<li class="flex items-center gap-4 px-4 py-3">
-          <span class="flex-1 min-w-0"><span class="block text-base font-medium">${esc(b.n)}</span><span class="block ${C.meta}">Due ${esc(b.d)}</span></span>
-          <span class="tnum text-base">${peso(b.a)}</span>
-          <button type="button" class="${C.iconBtn} -mr-2" onclick="delBill(${b.id})" aria-label="Remove ${esc(b.n)}">${icon(I.trash, 'w-[18px] h-[18px]')}</button>
+        ${S.b.map(b => `<li class="flex items-center gap-4 px-5 py-3.5">
+          <span class="flex-1 min-w-0"><span class="block text-sm font-semibold text-ink">${esc(b.n)}</span><span class="block ${C.meta}">Due ${esc(b.d)}</span></span>
+          <span class="tnum text-sm font-semibold text-ink">${peso(b.a)}</span>
+          <button type="button" class="${C.iconBtn} -mr-1.5" onclick="delBill(${b.id})" aria-label="Remove ${esc(b.n)}">${icon(I.trash, 'w-4 h-4', 16)}</button>
         </li>`).join('') || `<li class="p-8 text-center ${C.meta}">No bills set aside. Add rent, Wi-Fi or subscriptions so your daily amount stays honest.</li>`}
       </ul>
-      ${S.b.length ? `<div class="flex justify-between px-4 py-3 border-t border-line text-base font-medium"><span>Total set aside</span><span class="tnum">${peso(reserved())}</span></div>` : ''}
+      ${S.b.length ? `<div class="flex justify-between px-5 py-3.5 border-t border-line text-sm font-semibold"><span>Total set aside</span><span class="tnum">${peso(reserved())}</span></div>` : ''}
     </section>`,
 
   insights: () => {
@@ -421,64 +471,65 @@ const V = {
     const max = Math.max(1, ...Object.values(byCat));
     const bar = (pct, cls = 'bg-ink') => `<span class="block h-1.5 rounded-full bg-track overflow-hidden"><span class="block h-full rounded-full ${cls}" style="width:${pct}%"></span></span>`;
     return `
-      ${pageHead('Insights', 'Where the money went this period')}
+      ${pageHead('Insights', 'Cashflow & category breakdown this period')}
       <div class="grid gap-4 lg:grid-cols-2 items-start">
-        <section class="${C.card} p-4">
+        <section class="${C.card} p-5">
           ${cardHead('Money in vs out')}
-          <div class="mt-3 space-y-4 tnum text-base">
-            <div><div class="flex justify-between mb-1.5"><span>In</span><span class="text-gain">${peso(inc)}</span></div>${bar(inc ? 100 : 0, 'bg-gain')}</div>
-            <div><div class="flex justify-between mb-1.5"><span>Out</span><span>${peso(out)}</span></div>${bar(inc ? Math.min(100, out / inc * 100) : out ? 100 : 0)}</div>
-            <p class="${C.meta}">${inc ? `You’ve spent ${Math.round(out / inc * 100)}% of what came in.` : 'No income recorded yet.'}</p>
+          <div class="mt-3 space-y-4 tnum text-sm">
+            <div><div class="flex justify-between mb-1.5"><span class="text-ink-2">Money in</span><span class="font-semibold text-gain">${peso(inc)}</span></div>${bar(inc ? 100 : 0, 'bg-gain')}</div>
+            <div><div class="flex justify-between mb-1.5"><span class="text-ink-2">Money out</span><span class="font-semibold text-ink">${peso(out)}</span></div>${bar(inc ? Math.min(100, out / inc * 100) : out ? 100 : 0)}</div>
           </div>
+          <p class="${C.meta} pt-3 mt-4 border-t border-line">${inc ? `You’ve spent ${Math.round(out / inc * 100)}% of recorded income this period.` : 'No income recorded yet.'}</p>
         </section>
-        <section class="${C.card} p-4">
+        <section class="${C.card} p-5">
           ${cardHead('Spending by category')}
-          <ul class="mt-3 space-y-3 tnum text-base">
-            ${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<li><div class="flex justify-between mb-1.5"><span>${esc(k)}</span><span>${peso(v)}</span></div>${bar(v / max * 100)}</li>`).join('') || `<li class="${C.meta} py-4">No spending recorded yet.</li>`}
+          <ul class="mt-3 space-y-3 tnum text-sm">
+            ${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<li><div class="flex justify-between mb-1.5"><span class="text-ink-2">${esc(k)}</span><span class="font-semibold text-ink">${peso(v)}</span></div>${bar(v / max * 100)}</li>`).join('') || `<li class="${C.meta} py-4">No spending recorded yet.</li>`}
           </ul>
+          <p class="${C.meta} pt-3 mt-4 border-t border-line">Total categorized outflow: <span class="tnum font-semibold text-ink">${peso(out)}</span></p>
         </section>
       </div>`;
   },
 
   settings: () => `
-    ${pageHead('Settings')}
+    ${pageHead('Settings', 'Workspace & browser storage')}
     <section class="${C.card} divide-y divide-line">
-      <div class="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div><p class="text-base font-medium">Sign out</p><p class="${C.meta}">Your data stays saved in this browser.</p></div>
+      <div class="flex flex-wrap items-center justify-between gap-3 p-5">
+        <div><p class="text-sm font-semibold text-ink">Sign out</p><p class="${C.meta}">Close workspace session. Your data stays saved in this browser.</p></div>
         <button type="button" class="${C.btn2}" onclick="signOut()">Sign out</button>
       </div>
-      <div class="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div><p class="text-base font-medium">Reset demo data</p><p class="${C.meta}">Replace everything with the original sample wallets, entries and bills.</p></div>
-        <button type="button" class="${C.btn2} !border-alert !text-alert" onclick="openModal('reset')">Reset…</button>
+      <div class="flex flex-wrap items-center justify-between gap-3 p-5">
+        <div><p class="text-sm font-semibold text-ink">Reset demo data</p><p class="${C.meta}">Replace everything with the original sample wallets, entries and bills.</p></div>
+        <button type="button" class="${C.btn2} !border-alert/50 !text-alert hover:!bg-alert/5" onclick="openModal('reset')">Reset…</button>
       </div>
     </section>`,
 
   help: () => `
-    ${pageHead('Help')}
+    ${pageHead('Help', 'How One Wallet computes your daily allowance')}
     <div class="grid gap-4 lg:grid-cols-2 items-start">
-      <section class="${C.card} p-4">
+      <section class="${C.card} p-5">
         ${cardHead('How the daily amount works')}
-        <ol class="mt-2 space-y-2 text-base text-ink-2 list-decimal pl-5">
-          <li>Add each wallet with the balance its app shows.</li>
-          <li>Set aside bills due before payday.</li>
+        <ol class="mt-2 space-y-2.5 text-sm text-ink-2 list-decimal pl-5">
+          <li>Add each wallet with the balance its app shows right now.</li>
+          <li>Set aside bills due before your next payday.</li>
           <li>What’s left, divided by the days until payday, is your safe amount per day.</li>
         </ol>
       </section>
-      <section class="${C.card} p-4">
-        ${cardHead('Questions')}
-        <dl class="mt-2 space-y-3 text-base">
-          <div><dt class="font-medium">Does it connect to my bank?</dt><dd class="text-ink-2">No. It only reads alert text you paste in.</dd></div>
-          <div><dt class="font-medium">Is my data uploaded?</dt><dd class="text-ink-2">No. Everything stays in this browser.</dd></div>
-          <div><dt class="font-medium">A balance looks wrong.</dt><dd class="text-ink-2">Open the wallet and choose Correct balance. We add an entry for the difference so your history stays traceable.</dd></div>
+      <section class="${C.card} p-5">
+        ${cardHead('Common questions')}
+        <dl class="mt-2 space-y-3 text-sm">
+          <div><dt class="font-semibold text-ink">Does it connect to my bank?</dt><dd class="text-ink-2">No. It only reads alert text you paste in.</dd></div>
+          <div><dt class="font-semibold text-ink">Is my data uploaded?</dt><dd class="text-ink-2">No. Everything stays in this browser’s local storage.</dd></div>
+          <div><dt class="font-semibold text-ink">A balance looks wrong.</dt><dd class="text-ink-2">Open the wallet and choose Correct balance. We add an entry for the difference so your history stays traceable.</dd></div>
         </dl>
       </section>
     </div>`,
 
   more: () => `
-    ${pageHead('More')}
+    ${pageHead('More', 'All workspace sections')}
     <section class="${C.card}">
       <ul class="divide-y divide-line">
-        ${[['wallets', 'Wallets'], ['insights', 'Insights'], ['settings', 'Settings'], ['help', 'Help']].map(([k, l]) => `<li><a href="#${k}" class="flex items-center justify-between px-4 py-3.5 text-base hover:bg-paper">${l}<span class="text-mute">${icon(I.chevron, 'w-4 h-4')}</span></a></li>`).join('')}
+        ${[['wallets', 'Wallets'], ['insights', 'Insights'], ['settings', 'Settings'], ['help', 'Help']].map(([k, l]) => `<li><a href="#${k}" class="flex items-center justify-between px-5 py-3.5 text-sm font-medium hover:bg-subtle/60">${l}<span class="text-mute">${icon(I.chevron, 'w-4 h-4', 16)}</span></a></li>`).join('')}
       </ul>
     </section>`
 };
@@ -491,8 +542,8 @@ const MORE_GROUP = ['more', 'wallets', 'insights', 'settings', 'help'];
 
 const navLink = ([k, l]) => {
   const on = S.view === k;
-  return `<a href="#${k}" ${on ? 'aria-current="page"' : ''} class="relative flex items-center h-[35px] pl-[31px] pr-3 text-base ${on ? 'font-semibold text-ink' : 'text-ink-2 hover:text-ink'}">
-    ${on ? '<span class="absolute left-0 top-1 bottom-1 w-1 rounded-r-full bg-marigold" aria-hidden="true"></span>' : ''}${l}</a>`;
+  return `<a href="#${k}" ${on ? 'aria-current="page"' : ''} class="relative flex items-center h-9 mx-3 px-3 rounded-ctl text-sm ${on ? 'bg-subtle font-semibold text-ink' : 'text-ink-2 hover:text-ink hover:bg-subtle/50'}">
+    ${on ? '<span class="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-ink" aria-hidden="true"></span>' : ''}${l}</a>`;
 };
 
 function R() {
@@ -504,38 +555,41 @@ function R() {
   document.title = `${label} · One Wallet`;
 
   app.innerHTML = `
-    <div class="min-h-dvh md:grid md:grid-cols-[244px_1fr]">
-      <aside class="max-md:hidden sticky top-0 h-dvh flex flex-col border-r border-line">
-        <a href="#today" class="flex items-center gap-2.5 px-[31px] pt-7 pb-[30px]">
-          <span class="w-[30px] h-[30px] rounded-ctl bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-3.5 h-2.5 rounded-[2px] bg-card"></span></span>
-          <span class="text-lg font-semibold">One Wallet</span>
+    <div class="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
+      <aside class="max-md:hidden sticky top-0 h-dvh flex flex-col bg-card border-r border-line">
+        <a href="#today" class="flex items-center gap-2.5 px-6 pt-6 pb-5">
+          <span class="w-7 h-7 rounded-ctl bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-3 h-2 rounded-[2px] bg-card"></span></span>
+          <span class="text-base font-semibold tracking-[-0.01em]">One Wallet</span>
         </a>
-        <nav aria-label="Main" class="flex flex-col">${NAV.map(navLink).join('')}</nav>
-        <nav aria-label="Account" class="mt-auto flex flex-col pb-4">${NAV2.map(navLink).join('')}</nav>
-        <p class="border-t border-line px-[31px] py-4 text-[15px] text-ink-2">Next payday · ${shortDate(PAYDAY.slice(5))}</p>
+        <nav aria-label="Main" class="flex flex-col gap-0.5">${NAV.map(navLink).join('')}</nav>
+        <nav aria-label="Account" class="mt-auto flex flex-col gap-0.5 pb-3">${NAV2.map(navLink).join('')}</nav>
+        <div class="border-t border-line px-6 py-3.5 flex items-center justify-between text-xs text-mute">
+          <span>Next payday</span>
+          <span class="tnum font-semibold text-ink">${shortDate(PAYDAY.slice(5))}</span>
+        </div>
       </aside>
 
       <div class="min-w-0">
-        <header class="md:hidden flex items-center justify-between px-4 pt-4">
-          <span class="flex items-center gap-2"><span class="w-6 h-6 rounded-[6px] bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-2.5 h-2 rounded-[1px] bg-card"></span></span><span class="font-semibold">One Wallet</span></span>
+        <header class="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b border-line">
+          <span class="flex items-center gap-2"><span class="w-6 h-6 rounded-[6px] bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-2.5 h-2 rounded-[1px] bg-card"></span></span><span class="text-sm font-semibold">One Wallet</span></span>
           <span class="${C.meta}">Payday ${shortDate(PAYDAY.slice(5))}</span>
         </header>
-        <main id="main" class="max-w-[1040px] px-4 pt-5 pb-28 md:px-[30px] md:pt-[26px] md:pb-10">${V[S.view]()}</main>
+        <main id="main" class="w-full max-w-[1208px] mx-auto px-4 pt-5 pb-28 md:px-8 md:pt-7 md:pb-12">${V[S.view]()}</main>
       </div>
     </div>
 
     <nav aria-label="Main" class="md:hidden fixed inset-x-0 bottom-0 z-30 bg-card border-t border-line grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
       ${TABS.map(([k, l, ic]) => {
         const on = S.view === k || (k === 'more' && MORE_GROUP.includes(S.view));
-        return `<a href="#${k}" ${on ? 'aria-current="page"' : ''} class="flex flex-col items-center justify-center gap-0.5 h-16 text-xs ${on ? 'text-ink font-semibold' : 'text-mute'}">
-          <span class="relative">${icon(ic, 'w-6 h-6')}${on ? '<span class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-[3px] rounded-full bg-marigold" aria-hidden="true"></span>' : ''}</span>
+        return `<a href="#${k}" ${on ? 'aria-current="page"' : ''} class="flex flex-col items-center justify-center gap-0.5 h-15 text-xs ${on ? 'text-ink font-semibold' : 'text-mute'}">
+          <span class="relative">${icon(ic, 'w-5 h-5', 20)}${on ? '<span class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3.5 h-[2px] rounded-full bg-ink" aria-hidden="true"></span>' : ''}</span>
           <span class="mt-1">${l}</span></a>`;
       }).join('')}
     </nav>
 
     ${S.modal ? `
       <div class="fixed inset-0 z-50 bg-ink/40 flex items-end sm:items-center justify-center sm:p-4" onclick="if(event.target===this)closeModal()">
-        <div role="dialog" aria-modal="true" aria-labelledby="modal-title" class="dialog-in w-full sm:w-[460px] max-h-[90dvh] overflow-y-auto bg-card border border-line rounded-t-card sm:rounded-card p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <div role="dialog" aria-modal="true" aria-labelledby="modal-title" class="dialog-in w-full sm:w-[440px] max-h-[90dvh] overflow-y-auto bg-card border border-line rounded-t-card sm:rounded-card p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           ${M[S.modal]()}
         </div>
       </div>` : ''}`;

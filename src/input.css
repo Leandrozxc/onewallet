@@ -1,19 +1,21 @@
 @import "tailwindcss";
 @source "../index.html";
 
-/* One Wallet design tokens — "passbook ledger" direction.
-   One accent (marigold), one warm grey family, radius scale: cards 10, controls 8, badges/bars full. */
+/* One Wallet design tokens — "achromatic passbook ledger" direction.
+   Quiet paper & card surfaces, structural hairline borders, colour reserved for financial signals. */
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --color-paper: #F8FAFC;
+  --color-paper: #F6F7F9;
   --color-card: #FFFFFF;
-  --color-line: #E2E8F0;
-  --color-track: #E2E8F0;
+  --color-subtle: #F1F3F6;
+  --color-line: #E2E6ED;
+  --color-track: #E5E9F0;
   --color-ink: #0F172A;
   --color-ink-2: #334155;
-  --color-mute: #64748B;
-  --color-marigold: #F59E0B;
+  --color-mute: #475569;
+  --color-accent: #1D5FBF;
+  --color-marigold: #D97706;
   --color-gain: #15803D;
   --color-alert: #B91C1C;
 
@@ -23,8 +25,8 @@
 
 @layer base {
   html { -webkit-text-size-adjust: 100%; }
-  body { font-feature-settings: "tnum" 0; }
-  ::selection { background: var(--color-marigold); color: var(--color-ink); }
+  body { font-feature-settings: "tnum" 0; background-color: var(--color-paper); color: var(--color-ink); }
+  ::selection { background: #DBEAFE; color: var(--color-ink); }
   :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
   .tnum { font-variant-numeric: tabular-nums; }
   @media (prefers-reduced-motion: reduce) {
