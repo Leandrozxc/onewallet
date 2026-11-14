@@ -2,629 +2,577 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>One Wallet — Multi-Wallet Finance Tracker</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#F8FAFC">
+  <title>One Wallet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="./dist/output.css" rel="stylesheet">
-  <style>
-    body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    .num { font-variant-numeric: tabular-nums; }
-  </style>
 </head>
-<body class="bg-[#F8FAFC] text-slate-900 min-h-screen antialiased selection:bg-teal-100 selection:text-teal-900 pb-16 md:pb-0">
-  <div id="app"></div>
-  <script>
-  const TODAY='2026-09-30',PAYDAY='2026-10-15',
-  $=n=>'₱'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}),
-  E=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),
-  V=id=>document.getElementById(id).value;
+<body class="bg-paper text-ink font-sans antialiased">
+<div id="app"></div>
+<script>
+/* ---------- Constants & formatting ---------- */
+const TODAY = '2026-09-30';
+const PAYDAY = '2026-10-15';
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CATEGORIES = ['Food', 'Transport', 'Load', 'Bills', 'Income', 'Others'];
 
-  // Solid, tasteful Lucide-style SVG Icons
-  const IC={
-    dash:'<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>',
-    wal:'<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>',
-    tx:'<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>',
-    imp:'<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"/></svg>',
-    bill:'<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>',
-    ins:'<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
-    set:'<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>',
-    help:'<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-    plus:'<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>',
-    check:'<svg class="w-4 h-4 text-emerald-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>'
-  };
+const peso = n => '₱' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const signed = n => (n < 0 ? '− ' : '+ ') + peso(n);
+const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const val = id => (document.getElementById(id)?.value ?? '').trim();
+const shortDate = md => { const [m, d] = md.split('-').map(Number); return `${MONTHS[m - 1]} ${d}`; };
+const dayLabel = md => {
+  const today = TODAY.slice(5);
+  const y = new Date(TODAY); y.setDate(y.getDate() - 1);
+  const yesterday = String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0');
+  if (md === today) return `Today · ${shortDate(md)}`;
+  if (md === yesterday) return `Yesterday · ${shortDate(md)}`;
+  return shortDate(md);
+};
 
-  const CAT_STYLE={
-    Food:'bg-amber-100/70 text-amber-900 border-amber-300',
-    Transport:'bg-sky-100/70 text-sky-900 border-sky-300',
-    Load:'bg-indigo-100/70 text-indigo-900 border-indigo-300',
-    Bills:'bg-rose-100/70 text-rose-900 border-rose-300',
-    Income:'bg-emerald-100/70 text-emerald-900 border-emerald-300',
-    Others:'bg-slate-200/70 text-slate-800 border-slate-300'
-  };
+/* ---------- Icons (one 1.5px line family) ---------- */
+const icon = (d, cls = 'w-5 h-5') => `<svg class="${cls} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  today: '<path d="M4 5h16v15H4z"/><path d="M4 9h16M9 3v4M15 3v4"/>',
+  ledger: '<path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  import: '<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
+  bills: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  trash: '<path d="M5 7h14M10 11v6M14 11v6M7 7l1 13h8l1-13M9 7V4h6v3"/>',
+  chevron: '<path d="m9 5 7 7-7 7"/>'
+};
 
-  // Cohesive, solid design system
-  const K={
-    card:'bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs transition-shadow hover:shadow-sm',
-    hero:'bg-teal-900 text-white rounded-2xl p-5 shadow-sm border border-teal-800',
-    dark:'bg-slate-900 text-white rounded-2xl p-5 shadow-sm border border-slate-800',
-    btn:'inline-flex items-center justify-center gap-2 bg-teal-800 hover:bg-teal-900 active:scale-[0.98] focus:ring-2 focus:ring-teal-700 text-white rounded-xl px-4 py-2.5 font-semibold text-sm cursor-pointer shadow-xs transition-all',
-    ghost:'inline-flex items-center justify-center gap-2 bg-white hover:bg-teal-50 active:scale-[0.98] focus:ring-2 focus:ring-teal-700 text-teal-900 border border-teal-800/40 rounded-xl px-4 py-2.5 font-semibold text-sm cursor-pointer transition-all',
-    danger:'bg-white hover:bg-rose-50 focus:ring-2 focus:ring-rose-400 text-rose-800 border border-rose-300 rounded-lg min-w-[32px] min-h-[32px] p-1.5 flex items-center justify-center font-bold text-xs cursor-pointer transition-colors',
-    row:'flex justify-between items-center py-3 text-sm gap-3 border-b border-slate-100 last:border-b-0 hover:bg-slate-50/80 px-2 rounded-lg transition-colors',
-    inp:'w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm mt-1 mb-3 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-700 focus:border-teal-700 bg-white shadow-xs transition-all',
-    lbl:'block text-xs font-bold text-slate-800 uppercase tracking-wider mt-2 mb-1',
-    h:'text-2xl font-extrabold text-slate-900 tracking-tight',
-    m:'text-[13px] text-slate-600 leading-relaxed',
-    mt:'text-xs font-bold uppercase tracking-wider text-slate-200',
-    k:'text-3xl font-extrabold tracking-tight num',
-    grid:'grid grid-cols-1 md:grid-cols-2 gap-4',
-    hd:'flex justify-between items-center mb-1 flex-wrap gap-3',
-    btns:'flex gap-2.5 flex-wrap mt-4 justify-end',
-    pill:'inline-flex items-center justify-center rounded-xl px-3.5 py-1.5 text-xs font-semibold cursor-pointer transition-all min-h-[34px] border',
-    track:'h-2.5 bg-slate-100 rounded-full flex-1 overflow-hidden p-0.5 border border-slate-200',
-    bar:'block h-full rounded-full bg-amber-600 transition-all duration-500',
-    barg:'block h-full rounded-full bg-emerald-700 transition-all duration-500',
-    neg:'font-bold text-rose-800 num',
-    pos:'font-bold text-emerald-800 num',
-    nav:'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all',
-    navOn:'bg-teal-800 text-white shadow-xs font-bold',
-    navOff:'text-slate-300 hover:bg-slate-800 hover:text-white',
-    tabMob:'flex flex-col items-center justify-center flex-1 py-1.5 text-[11px] font-semibold transition-colors'
-  };
+/* ---------- Shared class vocabulary ---------- */
+const C = {
+  card: 'bg-card border border-line rounded-card',
+  btn: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-ink text-card text-[15px] font-medium hover:bg-ink-2 active:scale-[0.97] transition-[transform,background-color] duration-100 cursor-pointer',
+  btn2: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-card text-ink border border-ink text-[15px] font-medium hover:bg-paper active:scale-[0.97] transition-[transform,background-color] duration-100 cursor-pointer',
+  btnDanger: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-alert text-card text-[15px] font-medium hover:opacity-90 active:scale-[0.97] transition-transform duration-100 cursor-pointer',
+  link: 'text-[15px] font-medium text-ink underline-offset-4 hover:underline cursor-pointer',
+  iconBtn: 'inline-flex items-center justify-center w-9 h-9 rounded-ctl text-mute hover:text-ink hover:bg-paper cursor-pointer',
+  label: 'block text-sm font-medium text-ink mb-1.5',
+  input: 'w-full h-10 px-3 rounded-ctl bg-card border border-line text-[15px] text-ink placeholder:text-mute focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink aria-[invalid=true]:border-alert aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-alert',
+  cardTitle: 'text-lg font-semibold text-ink',
+  meta: 'text-sm text-mute',
+  h1: 'text-[30px] leading-tight font-semibold text-ink tracking-[-0.01em]'
+};
 
-  const pill=on=>K.pill+(on?' bg-teal-800 text-white border-teal-800 shadow-xs':' bg-white text-slate-700 border-slate-300 hover:bg-slate-100');
-  const catBadge=c=>`<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border ${(CAT_STYLE[c]||CAT_STYLE.Others)}">${E(c)}</span>`;
+/* ---------- State ---------- */
+const seed = () => ({
+  view: 'login', wid: 0, fw: 0, modal: '', pr: null, raw: '', draft: {}, errors: {}, n: 20,
+  w: [{ id: 1, n: 'GCash', b: 1200 }, { id: 2, n: 'Maya', b: 2100 }, { id: 3, n: 'GoTyme', b: 800 }, { id: 4, n: 'Cash', b: 150 }],
+  t: [
+    { id: 1, d: '09-30', s: 'Jollibee', c: 'Food', w: 1, a: -189 },
+    { id: 2, d: '09-30', s: 'Salary', c: 'Income', w: 2, a: 12000 },
+    { id: 3, d: '09-29', s: 'Load', c: 'Load', w: 1, a: -50 },
+    { id: 4, d: '09-29', s: 'Grab', c: 'Transport', w: 1, a: -140 }
+  ],
+  b: [{ id: 1, n: 'Wi-Fi', a: 1299, d: 'Oct 5' }, { id: 2, n: 'Spotify', a: 200, d: 'Oct 9' }]
+});
+let S = seed();
+try { const saved = JSON.parse(localStorage.getItem('onewallet')); if (saved) S = { ...S, ...saved }; } catch (e) {}
 
-  const seed=()=>({view:'login',wid:0,fw:0,modal:'',pr:null,raw:'',n:20,
-    w:[{id:1,n:'GCash',b:1200,p:'E-Wallet'},{id:2,n:'Maya',b:2100,p:'Digital Bank'},{id:3,n:'GoTyme',b:800,p:'Digital Bank'},{id:4,n:'Cash',b:150,p:'Physical'}],
-    t:[{id:1,d:'09-30',s:'Jollibee',c:'Food',w:1,a:-189},{id:2,d:'09-30',s:'Salary',c:'Income',w:2,a:12000},{id:3,d:'09-29',s:'Load',c:'Load',w:1,a:-50},{id:4,d:'09-29',s:'Grab',c:'Transport',w:1,a:-140}],
-    b:[{id:1,n:'Wi-Fi',a:1299,d:'Oct 5'},{id:2,n:'Spotify',a:200,d:'Oct 9'}]});
+const walletName = id => esc(S.w.find(x => x.id == id)?.n ?? 'Deleted wallet');
+const total = () => S.w.reduce((s, w) => s + w.b, 0);
+const reserved = () => S.b.reduce((s, b) => s + b.a, 0);
+const daysLeft = () => Math.max(1, Math.round((new Date(PAYDAY) - new Date(TODAY)) / 864e5));
+const free = () => Math.max(0, total() - reserved());
+const perDay = () => free() / daysLeft();
 
-  let S=seed();
-  try{const saved=JSON.parse(localStorage.getItem('onewallet'));if(saved)S={...S,...saved}}catch(e){}
+/* ---------- Navigation ---------- */
+function go(v) {
+  if (location.hash === '#' + v) { S.view = v; S.wid = 0; S.pr = null; R(); }
+  else location.hash = v;
+}
+function signIn() { location.replace('#today'); }          // one-way door: Back never returns to sign-in
+function signOut() { S.modal = ''; location.replace('#login'); }
+function openModal(m) { S.modal = m; S.draft = {}; S.errors = {}; R(); }
+function closeModal() { S.modal = ''; S.draft = {}; S.errors = {}; R(); }
+let keepWallet = false;
+function openWallet(id) { S.wid = id; if (S.view !== 'wallets') { keepWallet = true; go('wallets'); } else R(); }
 
-  const wn=i=>{const w=S.w.find(x=>x.id==i);return w?E(w.n):'?'},
-  tot=()=>S.w.reduce((s,w)=>s+w.b,0),res=()=>S.b.reduce((s,b)=>s+b.a,0),
-  days=()=>Math.max(1,Math.round((new Date(PAYDAY)-new Date(TODAY))/864e5)),
-  per=()=>Math.max(0,(tot()-res())/days()),
-  go=v=>{if(location.hash=='#'+v){S.view=v;S.wid=0;S.pr=null;R()}else location.hash=v},
-  op=m=>{S.modal=m;R()},
-  wopt=s=>S.w.map(w=>`<option value="${w.id}" ${w.id==s?'selected':''}>${E(w.n)} (${$(w.b)})</option>`).join(''),
-  btns=f=>`<div class="${K.btns}"><button type="button" class="${K.ghost}" onclick="op('')">Cancel</button><button type="button" class="${K.btn}" onclick="${f}">Save Entry</button></div>`;
+/* ---------- Mutations ---------- */
+function addTx(w, a, s, c) { S.t.unshift({ id: ++S.n, d: TODAY.slice(5), s, c, w: +w, a }); const wl = S.w.find(z => z.id == w); if (wl) wl.b += a; }
+function delTx(id) { const t = S.t.find(x => x.id == id); if (!t) return; const wl = S.w.find(z => z.id == t.w); if (wl) wl.b -= t.a; S.t = S.t.filter(x => x.id != id); R(); }
+function delBill(id) { S.b = S.b.filter(x => x.id != id); R(); }
 
-  function add(w,a,s,c){S.t.unshift({id:++S.n,d:'09-30',s,c,w:+w,a});S.w.find(z=>z.id==w).b+=a}
-  function del(id){const t=S.t.find(x=>x.id==id);S.w.find(z=>z.id==t.w).b-=t.a;S.t=S.t.filter(x=>x.id!=id);R()}
-  
-  function txRows(l,d){
-    return l.map(t=>`
-      <div class="${K.row}">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${t.a>0?'bg-emerald-100 text-emerald-900 border border-emerald-300':'bg-slate-100 text-slate-800 border border-slate-200'}">
-            ${t.a>0?'↓':'↑'}
-          </div>
-          <div class="min-w-0">
-            <div class="font-bold text-slate-900 truncate">${E(t.s)}</div>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              ${catBadge(t.c)}
-              <span class="text-xs text-slate-600 font-medium">• ${wn(t.w)}</span>
-            </div>
-          </div>
-        </div>
-        <div class="flex items-center gap-3 shrink-0">
-          <span class="text-xs text-slate-600 font-medium max-sm:hidden">${t.d}</span>
-          <b class="${t.a<0?K.neg:K.pos}">${t.a<0?'−':'+'}${$(t.a)}</b>
-          ${d?`<button type="button" class="${K.danger}" onclick="del(${t.id})" aria-label="Delete transaction: ${E(t.s)}">✕</button>`:''}
-        </div>
-      </div>
-    `).join('')||`<div class="py-8 text-center text-slate-500 text-sm">No transactions found.</div>`;
-  }
+function fail(errors, fields) { S.errors = errors; S.draft = Object.fromEntries(fields.map(f => [f, val(f)])); R(); }
 
-  const SAMPLES=['GCash: You have paid ₱189.00 to Jollibee. Ref 5012 884 991.','Maya: You received ₱1,500.00 from Juan Dela Cruz.','GoTyme: You sent ₱350.00 to Grab. Ref 88231.'];
-  function fill(i){S.raw=SAMPLES[i];S.pr=null;R()}
-  function rd(){
-    const x=S.raw=V('raw'),a=(x.match(/(?:₱|PHP\s?)\s?([\d,]+(?:\.\d+)?)/i)||[])[1];
-    if(!a){S.pr={err:'No transaction amount detected. Please check the text format or try a sample alert.'};return R()}
-    const inn=/received|credited|cash[- ]?in|deposit/i.test(x),out=/paid|sent|transferred|purchase|debited|cash[- ]?out/i.test(x),
-    s=(x.match(/(?:to|from|at)\s+([A-Z][\w&' -]*?)(?:\.|,|\s+Ref|$)/)||[])[1]||'Unknown Merchant',
-    w=S.w.find(z=>new RegExp(z.n,'i').test(x)),
-    c=inn&&!out?'Income':/jollibee|mcdo|food|coffee|milk ?tea/i.test(x)?'Food':/grab|angkas|jeep|mrt|lrt/i.test(x)?'Transport':/load|globe|smart/i.test(x)?'Load':/meralco|wifi|water|converge/i.test(x)?'Bills':'Others';
-    S.pr={a:parseFloat(a.replace(/,/g,'')),dir:inn&&!out?1:-1,s,c,w:w?w.id:S.w[0].id};R()
-  }
-  function okp(){const p=S.pr;add(V('pw'),p.a*p.dir,p.s,p.c);S.pr=null;S.raw='';go('tx')}
-  function saveTx(){const a=+V('am');if(!a)return;add(V('mw'),V('ty')*a,V('nt')||'Manual',V('mc'));S.modal='';R()}
-  function saveW(){S.w.push({id:++S.n,n:V('wnm')||'Wallet',b:+V('wb')||0,p:'Custom'});S.modal='';R()}
-  function saveB(){S.b.push({id:++S.n,n:V('bn')||'Bill',a:+V('ba')||0,d:V('bd')||'-'});S.modal='';R()}
-  function doRec(){const w=S.w.find(x=>x.id==S.wid),d=+V('rb')-w.b;if(d)add(w.id,d,'Reconciliation adjustment','Others');S.modal='';R()}
+function saveTx() {
+  const a = parseFloat(val('am'));
+  if (!(a > 0)) return fail({ am: 'Enter an amount greater than ₱0.' }, ['ty', 'am', 'mw', 'mc', 'nt']);
+  addTx(val('mw'), +val('ty') * a, val('nt') || (val('ty') === '1' ? 'Income' : 'Expense'), val('mc'));
+  closeModal();
+}
+function saveWallet() {
+  const n = val('wnm'), b = val('wb') === '' ? 0 : parseFloat(val('wb'));
+  const e = {};
+  if (!n) e.wnm = 'Give this wallet a name.';
+  if (isNaN(b)) e.wb = 'Enter a number, or leave it blank for ₱0.';
+  if (Object.keys(e).length) return fail(e, ['wnm', 'wb']);
+  S.w.push({ id: ++S.n, n, b });
+  closeModal();
+}
+function saveBill() {
+  const n = val('bn'), a = parseFloat(val('ba')), d = val('bd');
+  const e = {};
+  if (!n) e.bn = 'Name the bill.';
+  if (!(a > 0)) e.ba = 'Enter an amount greater than ₱0.';
+  if (Object.keys(e).length) return fail(e, ['bn', 'ba', 'bd']);
+  S.b.push({ id: ++S.n, n, a, d: d || 'No due date' });
+  closeModal();
+}
+function saveReconcile() {
+  const w = S.w.find(x => x.id == S.wid), real = parseFloat(val('rb'));
+  if (isNaN(real)) return fail({ rb: 'Enter the balance your app shows.' }, ['rb']);
+  const diff = Math.round((real - w.b) * 100) / 100;
+  if (diff) addTx(w.id, diff, 'Balance correction', 'Others');
+  closeModal();
+}
+function resetData() { S = { ...seed(), view: S.view }; try { localStorage.removeItem('onewallet'); } catch (e) {} closeModal(); go('today'); }
 
-  const M={
-    tx:()=>`
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <h2 id="modal-title" class="text-xl font-extrabold text-slate-900">Add Transaction</h2>
-        <button type="button" class="text-slate-500 hover:text-slate-800 text-lg p-1" onclick="op('')">✕</button>
-      </div>
-      <label class="${K.lbl}" for="ty">Transaction Type</label>
-      <select id="ty" class="${K.inp}" aria-label="Transaction type"><option value="-1">Expense (Money Out)</option><option value="1">Income (Money In)</option></select>
-      <label class="${K.lbl}" for="am">Amount (₱)</label>
-      <input id="am" type="number" step="0.01" class="${K.inp} font-bold text-base" placeholder="0.00" aria-label="Amount in Pesos" autofocus>
-      <label class="${K.lbl}" for="mw">Source Wallet</label>
-      <select id="mw" class="${K.inp}" aria-label="Wallet">${wopt()}</select>
-      <label class="${K.lbl}" for="mc">Category</label>
-      <select id="mc" class="${K.inp}" aria-label="Category">${['Food','Transport','Load','Bills','Others','Income'].map(c=>`<option>${c}</option>`).join('')}</select>
-      <label class="${K.lbl}" for="nt">Note / Merchant Name</label>
-      <input id="nt" class="${K.inp}" placeholder="e.g. Starbucks, Jollibee, Grab" aria-label="Note or merchant">
-      ${btns('saveTx()')}`,
-    wal:()=>`
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <h2 id="modal-title" class="text-xl font-extrabold text-slate-900">Add Wallet or Bank</h2>
-        <button type="button" class="text-slate-500 hover:text-slate-800 text-lg p-1" onclick="op('')">✕</button>
-      </div>
-      <label class="${K.lbl}" for="wnm">Wallet Name</label>
-      <input id="wnm" class="${K.inp}" placeholder="e.g. MariBank, Seabank, BDO" aria-label="Wallet name" autofocus>
-      <label class="${K.lbl}" for="wb">Initial Balance (₱)</label>
-      <input id="wb" type="number" step="0.01" class="${K.inp} font-bold" placeholder="0.00" aria-label="Starting balance">
-      ${btns('saveW()')}`,
-    bill:()=>`
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <h2 id="modal-title" class="text-xl font-extrabold text-slate-900">Add Upcoming Bill</h2>
-        <button type="button" class="text-slate-500 hover:text-slate-800 text-lg p-1" onclick="op('')">✕</button>
-      </div>
-      <label class="${K.lbl}" for="bn">Bill Description</label>
-      <input id="bn" class="${K.inp}" placeholder="e.g. Converge Fiber, Netflix, Meralco" aria-label="Bill name" autofocus>
-      <label class="${K.lbl}" for="ba">Amount Reserved (₱)</label>
-      <input id="ba" type="number" step="0.01" class="${K.inp} font-bold" placeholder="0.00" aria-label="Bill amount">
-      <label class="${K.lbl}" for="bd">Due Date / Cycle</label>
-      <input id="bd" class="${K.inp}" placeholder="e.g. Oct 15, Every 20th" aria-label="Due date">
-      ${btns('saveB()')}`,
-    rec:()=>{const w=S.w.find(x=>x.id==S.wid);return `
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <h2 id="modal-title" class="text-xl font-extrabold text-slate-900">Reconcile ${E(w.n)}</h2>
-        <button type="button" class="text-slate-500 hover:text-slate-800 text-lg p-1" onclick="op('')">✕</button>
-      </div>
-      <div class="bg-amber-100/70 border border-amber-300 rounded-xl p-3 my-3 text-xs text-amber-950 leading-relaxed">
-        One Wallet currently tracks <b>${$(w.b)}</b>. Enter what your real banking app shows to record an automatic balance adjustment.
-      </div>
-      <label class="${K.lbl}" for="rb">Actual Real Balance (₱)</label>
-      <input id="rb" type="number" step="0.01" class="${K.inp} font-bold text-base" placeholder="0.00" aria-label="Real balance" autofocus>
-      ${btns('doRec()')}`}};
-
-  const VW={
-    login:()=>`
-      <div class="min-h-screen flex">
-        <div class="flex-1 flex flex-col justify-between p-12 bg-slate-950 text-white max-md:hidden relative border-r border-slate-800">
-          <div class="flex items-center gap-2 text-xl font-extrabold tracking-tight">
-            <span class="w-8 h-8 rounded-lg bg-teal-800 border border-teal-700 flex items-center justify-center text-teal-200">◎</span>
-            One Wallet
-          </div>
-          <div class="max-w-md">
-            <h1 class="text-4xl font-extrabold tracking-tight leading-tight">All your Philippine wallets.<br><span class="text-teal-400">One intelligent view.</span></h1>
-            <p class="text-slate-300 text-sm mt-3 leading-relaxed">Consolidate GCash, Maya, GoTyme, and cash balances into an automated daily spend runway.</p>
-          </div>
-          <div class="text-xs text-slate-400 font-medium">© 2026 One Wallet • Philippine Digital Banking Suite</div>
-        </div>
-        <div class="flex-1 flex flex-col justify-center px-[10%] bg-white">
-          <div class="max-w-sm w-full mx-auto">
-            <h2 class="${K.h} mb-1">Sign in to your wallet</h2>
-            <p class="text-sm text-slate-600 mb-6 font-medium">Enter demo credentials to explore your dashboard.</p>
-            <label class="${K.lbl}" for="login-email">Email Address</label>
-            <input id="login-email" class="${K.inp}" value="user@onewallet.ph" placeholder="user@onewallet.ph" aria-label="Email address" autocomplete="username">
-            <label class="${K.lbl}" for="login-pwd">Password</label>
-            <input id="login-pwd" type="password" class="${K.inp}" value="password123" placeholder="••••••••" aria-label="Password" autocomplete="current-password">
-            <button type="button" class="${K.btn} w-full mt-2" onclick="go('dash')">Sign In to One Wallet</button>
-            <div class="text-center text-xs text-slate-500 font-medium mt-4">Local prototype: click Sign In to continue.</div>
-          </div>
-        </div>
-      </div>`,
-
-    dash:()=>`
-      <div class="${K.hd}">
-        <div>
-          <h1 class="${K.h}">Financial Dashboard</h1>
-          <p class="${K.m}">Real-time cashflow runway until Payday (Oct 15, 2026)</p>
-        </div>
-        <button type="button" class="${K.btn}" onclick="op('tx')">${IC.plus} Add Transaction</button>
-      </div>
-
-      <div class="${K.grid}">
-        <div class="${K.hero}">
-          <div class="${K.mt}">Consolidated Net Worth</div>
-          <div class="${K.k} text-4xl my-1 text-white">${$(tot())}</div>
-          <div class="text-xs text-teal-100 font-semibold flex items-center gap-1.5 mt-2">
-            ${IC.check} Across ${S.w.length} connected accounts
-          </div>
-        </div>
-
-        <div class="${K.dark}">
-          <div class="flex items-center justify-between">
-            <div class="${K.mt}">Spendable Daily Runway</div>
-            <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-800 text-teal-300 border border-slate-700">${days()} Days Left</span>
-          </div>
-          <div class="${K.k} text-4xl text-teal-300 my-1">${$(per())} <span class="text-sm font-normal text-slate-300">/day</span></div>
-          <div class="text-xs text-slate-300 font-medium flex items-center gap-2 mt-2">
-            <span>Reserved for bills: <b class="text-white num">${$(res())}</b></span>
-          </div>
-        </div>
-      </div>
-
-      <div class="${K.grid}">
-        <div class="${K.card}">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="font-extrabold text-slate-900 text-base">Recent Transactions</h2>
-            <a href="#tx" class="text-xs font-bold text-teal-800 hover:underline">View all →</a>
-          </div>
-          ${txRows(S.t.slice(0,5))}
-        </div>
-
-        <div class="${K.card}">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="font-extrabold text-slate-900 text-base">Active Accounts</h2>
-            <button type="button" class="text-xs font-bold text-teal-800 hover:underline" onclick="op('wal')">+ New</button>
-          </div>
-          <div class="space-y-1">
-            ${S.w.map(w=>`
-              <div class="${K.row} cursor-pointer hover:bg-slate-100/70 rounded-xl px-3 transition-colors" onclick="S.wid=${w.id};go('wal')">
-                <div>
-                  <div class="font-bold text-slate-900">${E(w.n)}</div>
-                  <div class="text-xs text-slate-600 font-medium">${w.p||'E-Wallet'}</div>
-                </div>
-                <div class="text-right">
-                  <div class="font-extrabold text-slate-900 num">${$(w.b)}</div>
-                  <span class="text-[11px] text-teal-800 font-bold">Manage →</span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      </div>`,
-
-    wal:()=>{
-      const w=S.w.find(x=>x.id==S.wid);
-      return w?`
-        <div class="mb-2">
-          <button type="button" class="inline-flex items-center gap-1 text-xs font-bold text-teal-800 hover:text-teal-950 cursor-pointer py-1" onclick="S.wid=0;R()">
-            ← Back to all wallets
-          </button>
-        </div>
-        <div class="${K.hd}">
-          <div>
-            <h1 class="${K.h}">${E(w.n)}</h1>
-            <p class="${K.m}">Managed account • ${w.p||'Digital Wallet'}</p>
-          </div>
-          <button type="button" class="${K.btn}" onclick="op('rec')">Reconcile Real Balance</button>
-        </div>
-        <div class="${K.hero}">
-          <div class="${K.mt}">Current Ledger Balance</div>
-          <div class="${K.k} text-4xl my-1 text-white">${$(w.b)}</div>
-          <div class="text-xs text-teal-100 font-medium mt-2">To align with your bank statement, use Reconcile Balance.</div>
-        </div>
-        <div class="${K.card}">
-          <h2 class="font-extrabold text-slate-900 text-base mb-3">${E(w.n)} Transaction History</h2>
-          ${txRows(S.t.filter(t=>t.w==w.id))}
-        </div>
-      `:`
-        <div class="${K.hd}">
-          <div>
-            <h1 class="${K.h}">Wallets & Bank Accounts</h1>
-            <p class="${K.m}">Manage balances across your physical and digital accounts</p>
-          </div>
-          <button type="button" class="${K.btn}" onclick="op('wal')">${IC.plus} Add Wallet</button>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          ${S.w.map(w=>`
-            <div class="${K.card} cursor-pointer hover:border-teal-700 focus:ring-2 focus:ring-teal-700 focus:outline-none transition-all group" tabindex="0" role="button" aria-label="Open wallet ${E(w.n)}" onclick="S.wid=${w.id};R()" onkeydown="if(event.key==='Enter'||event.key===' '){S.wid=${w.id};R()}">
-              <div class="flex items-center justify-between text-xs text-slate-600 mb-2">
-                <span class="font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200">${w.p||'Account'}</span>
-                <span class="text-teal-800 group-hover:translate-x-0.5 transition-transform font-bold">→</span>
-              </div>
-              <b class="text-lg text-slate-900 block truncate font-extrabold">${E(w.n)}</b>
-              <div class="${K.k} text-2xl text-teal-900 mt-2">${$(w.b)}</div>
-            </div>
-          `).join('')}
-        </div>
-      `;
-    },
-
-    tx:()=>`
-      <div class="${K.hd}">
-        <div>
-          <h1 class="${K.h}">Transactions Ledger</h1>
-          <p class="${K.m}">Itemized record of expenses, incomes, and balance adjustments</p>
-        </div>
-        <button type="button" class="${K.btn}" onclick="op('tx')">${IC.plus} Add Entry</button>
-      </div>
-      <div class="flex flex-wrap items-center gap-1.5 py-1">
-        <span class="${pill(S.fw==0)}" tabindex="0" role="button" onclick="S.fw=0;R()" onkeydown="if(event.key==='Enter'||event.key===' '){S.fw=0;R()}">All Accounts</span>
-        ${S.w.map(w=>`<span class="${pill(S.fw==w.id)}" tabindex="0" role="button" onclick="S.fw=${w.id};R()" onkeydown="if(event.key==='Enter'||event.key===' '){S.fw=${w.id};R()}">${E(w.n)}</span>`).join('')}
-      </div>
-      <div class="${K.card}">
-        ${txRows(S.t.filter(t=>!S.fw||t.w==S.fw),1)}
-      </div>`,
-
-    imp:()=>{
-      const p=S.pr;
-      return `
-        <div class="${K.hd}">
-          <div>
-            <h1 class="${K.h}">Smart Alert Import</h1>
-            <p class="${K.m}">Paste transaction SMS or push notification text from GCash, Maya, or GoTyme</p>
-          </div>
-        </div>
-
-        <div class="${K.card}">
-          <label class="${K.lbl}" for="raw">Paste Alert Notification</label>
-          <textarea id="raw" rows="3" class="${K.inp} font-mono text-xs leading-relaxed" placeholder="e.g. GCash: You have paid ₱189.00 to Jollibee..." aria-label="Paste alert text">${E(S.raw)}</textarea>
-          
-          <div class="flex items-center justify-between flex-wrap gap-2 mt-2">
-            <button type="button" class="${K.btn}" onclick="rd()">Parse Alert Text</button>
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-xs text-slate-600 font-bold">Try Sample:</span>
-              <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 cursor-pointer" onclick="fill(0)">GCash</button>
-              <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 cursor-pointer" onclick="fill(1)">Maya</button>
-              <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 cursor-pointer" onclick="fill(2)">GoTyme</button>
-            </div>
-          </div>
-        </div>
-
-        ${p?(p.err?`
-          <div class="bg-rose-100/70 border border-rose-300 rounded-2xl p-4 text-sm font-bold text-rose-900">
-            ⚠️ ${p.err}
-          </div>
-        `:`
-          <div class="${K.card} border-teal-800/30 bg-teal-50/20">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
-              <h2 class="font-extrabold text-slate-900 text-base">Detected Payment Details</h2>
-              <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">Ready to Add</span>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-4">
-              <div class="p-3 bg-white border border-slate-200 rounded-xl">
-                <span class="text-xs text-slate-600 font-semibold block">Amount</span>
-                <b class="text-lg num text-slate-900 font-extrabold">${$(p.a)}</b>
-              </div>
-              <div class="p-3 bg-white border border-slate-200 rounded-xl">
-                <span class="text-xs text-slate-600 font-semibold block">Direction</span>
-                <b class="text-base font-bold ${p.dir>0?'text-emerald-800':'text-slate-900'}">${p.dir>0?'Income (In)':'Expense (Out)'}</b>
-              </div>
-              <div class="p-3 bg-white border border-slate-200 rounded-xl">
-                <span class="text-xs text-slate-600 font-semibold block">Merchant</span>
-                <b class="text-base text-slate-900 truncate block font-bold">${E(p.s)}</b>
-              </div>
-              <div class="p-3 bg-white border border-slate-200 rounded-xl">
-                <span class="text-xs text-slate-600 font-semibold block">Category</span>
-                <b class="text-base text-slate-900 font-bold">${catBadge(p.c)}</b>
-              </div>
-            </div>
-
-            <label class="${K.lbl}" for="pw">Assign Transaction to Account</label>
-            <select id="pw" class="${K.inp}" aria-label="Select wallet">${wopt(p.w)}</select>
-            <button type="button" class="${K.btn} w-full mt-2" onclick="okp()">Confirm and Save to Ledger</button>
-          </div>
-        `):''}
-      `;
-    },
-
-    bill:()=>`
-      <div class="${K.hd}">
-        <div>
-          <h1 class="${K.h}">Upcoming Bills & Obligations</h1>
-          <p class="${K.m}">Amounts quarantined from your spendable daily runway</p>
-        </div>
-        <button type="button" class="${K.btn}" onclick="op('bill')">${IC.plus} Add Bill</button>
-      </div>
-
-      <div class="${K.hero}">
-        <div class="${K.mt}">Total Quarantined for Bills</div>
-        <div class="${K.k} text-4xl my-1 text-white">${$(res())}</div>
-        <div class="text-xs text-teal-100 font-medium mt-2">Deducted automatically before calculating your daily spend runway.</div>
-      </div>
-
-      <div class="${K.card}">
-        <h2 class="font-extrabold text-slate-900 text-base mb-3">Recurring Obligations</h2>
-        <div class="space-y-1">
-          ${S.b.map(b=>`
-            <div class="${K.row}">
-              <div>
-                <b class="text-slate-900 font-bold">${E(b.n)}</b>
-                <div class="text-xs text-slate-600 font-medium">Due date: ${E(b.d)}</div>
-              </div>
-              <div class="flex items-center gap-3">
-                <b class="text-slate-900 num font-extrabold">${$(b.a)}</b>
-                <button type="button" class="${K.danger}" onclick="S.b=S.b.filter(x=>x.id!=${b.id});R()" aria-label="Delete bill: ${E(b.n)}">✕</button>
-              </div>
-            </div>
-          `).join('')||`<div class="py-6 text-center text-slate-500 text-sm">No bills added yet.</div>`}
-        </div>
-      </div>`,
-
-    ins:()=>{
-      const m={};
-      S.t.filter(t=>t.a<0).forEach(t=>m[t.c]=(m[t.c]||0)-t.a);
-      const inc=S.t.filter(t=>t.a>0).reduce((s,t)=>s+t.a,0),
-      out=Object.values(m).reduce((s,v)=>s+v,0),
-      mx=Math.max(1,...Object.values(m));
-
-      return `
-        <div class="${K.hd}">
-          <div>
-            <h1 class="${K.h}">Spending Analytics</h1>
-            <p class="${K.m}">Breakdown of cash outflows and inflow ratios</p>
-          </div>
-        </div>
-
-        <div class="${K.grid}">
-          <div class="${K.card}">
-            <h2 class="font-extrabold text-slate-900 text-base mb-4">Cash In vs Cash Out</h2>
-            <div class="space-y-4">
-              <div>
-                <div class="flex justify-between text-xs font-bold mb-1">
-                  <span class="text-emerald-800">Total Income</span>
-                  <span class="num text-slate-900 font-extrabold">${$(inc)}</span>
-                </div>
-                <div class="${K.track}"><i class="${K.barg}" style="width:100%"></i></div>
-              </div>
-              <div>
-                <div class="flex justify-between text-xs font-bold mb-1">
-                  <span class="text-amber-800">Total Expenses</span>
-                  <span class="num text-slate-900 font-extrabold">${$(out)} (${inc?Math.round(out/inc*100):0}%)</span>
-                </div>
-                <div class="${K.track}"><i class="${K.bar}" style="width:${inc?Math.min(100,out/inc*100):0}%"></i></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="${K.card}">
-            <h2 class="font-extrabold text-slate-900 text-base mb-3">Top Expense Categories</h2>
-            <div class="space-y-3">
-              ${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
-                <div>
-                  <div class="flex justify-between items-center text-xs mb-1">
-                    <span class="font-bold">${catBadge(k)}</span>
-                    <b class="text-slate-900 num font-extrabold">${$(v)}</b>
-                  </div>
-                  <div class="${K.track}"><i class="${K.bar}" style="width:${v/mx*100}%"></i></div>
-                </div>
-              `).join('')||`<div class="py-6 text-center text-slate-500 text-sm">No recorded expenses yet.</div>`}
-            </div>
-          </div>
-        </div>`;
-    },
-
-    set:()=>`
-      <div class="${K.hd}">
-        <div>
-          <h1 class="${K.h}">Application Settings</h1>
-          <p class="${K.m}">Manage session and local state</p>
-        </div>
-      </div>
-      <div class="${K.card}">
-        <div class="${K.row}">
-          <div>
-            <div class="font-bold text-slate-900">Sign Out</div>
-            <div class="text-xs text-slate-600 font-medium">Return to the welcome sign in page</div>
-          </div>
-          <button type="button" class="${K.ghost}" onclick="go('login')">Sign out</button>
-        </div>
-        <div class="${K.row}">
-          <div>
-            <div class="font-bold text-rose-800">Reset Demo Data</div>
-            <div class="text-xs text-slate-600 font-medium">Restore factory sample wallets, transactions, and bills</div>
-          </div>
-          <button type="button" class="${K.danger} !px-4" onclick="S=seed();go('dash')">Reset All Data</button>
-        </div>
-      </div>`,
-
-    help:()=>`
-      <div class="${K.hd}">
-        <div>
-          <h1 class="${K.h}">Documentation & Guide</h1>
-          <p class="${K.m}">How One Wallet tracks your finances without server sync</p>
-        </div>
-      </div>
-      <div class="${K.grid}">
-        <div class="${K.card}">
-          <h2 class="font-extrabold text-slate-900 text-base mb-3">How it works</h2>
-          <div class="space-y-3 text-sm text-slate-800">
-            <div class="flex gap-2.5">
-              <span class="w-6 h-6 rounded-full bg-teal-800 text-white font-bold flex items-center justify-center text-xs shrink-0">1</span>
-              <div><b>Record your accounts</b>: Add GCash, Maya, GoTyme, or Cash balances.</div>
-            </div>
-            <div class="flex gap-2.5">
-              <span class="w-6 h-6 rounded-full bg-teal-800 text-white font-bold flex items-center justify-center text-xs shrink-0">2</span>
-              <div><b>Copy payment alerts</b>: When you pay, copy the SMS/app notification and paste it in Smart Alert Import.</div>
-            </div>
-            <div class="flex gap-2.5">
-              <span class="w-6 h-6 rounded-full bg-teal-800 text-white font-bold flex items-center justify-center text-xs shrink-0">3</span>
-              <div><b>Check your runway</b>: Know exactly how much money you can spend per day until next payday.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="${K.card}">
-          <h2 class="font-extrabold text-slate-900 text-base mb-3">Frequently Asked Questions</h2>
-          <div class="space-y-2.5 text-xs text-slate-700 leading-relaxed">
-            <div><b class="text-slate-900">Does it connect to banks directly?</b><br>No. There are no bank API credentials required; it reads text from notifications you paste.</div>
-            <div><b class="text-slate-900">Is my transaction data stored online?</b><br>No. Everything stays in your browser's private local storage.</div>
-            <div><b class="text-slate-900">My real wallet balance is slightly off.</b><br>Open that wallet and click "Reconcile Balance" to make an audit-friendly correction.</div>
-          </div>
-        </div>
-      </div>`
-  };
-
-  function R(){
-    try{localStorage.setItem('onewallet',JSON.stringify({w:S.w,t:S.t,b:S.b,n:S.n}))}catch(e){}
-    const a=document.getElementById('app');
-    if(S.view=='login'){a.innerHTML=VW.login();return}
-    
-    const nav=[
-      ['dash','Dashboard',IC.dash],
-      ['wal','Wallets',IC.wal],
-      ['tx','Transactions',IC.tx],
-      ['imp','Import',IC.imp],
-      ['bill','Bills',IC.bill],
-      ['ins','Insights',IC.ins],
-      ['set','Settings',IC.set],
-      ['help','Help',IC.help]
-    ];
-
-    a.innerHTML=`
-      <div class="flex min-h-screen">
-        <!-- Desktop Sidebar -->
-        <nav aria-label="Main Navigation" class="w-60 shrink-0 bg-slate-950 px-4 py-6 flex flex-col justify-between text-white max-md:hidden border-r border-slate-800">
-          <div class="space-y-6">
-            <div class="flex items-center gap-2.5 px-2">
-              <span class="w-7 h-7 rounded-lg bg-teal-800 border border-teal-700 flex items-center justify-center text-teal-200 font-extrabold text-sm">◎</span>
-              <span class="font-extrabold tracking-tight text-base text-white">One Wallet</span>
-            </div>
-            <div class="space-y-1">
-              ${nav.map(([k,l,ic])=>`
-                <a href="#${k}" class="${K.nav} ${S.view==k?K.navOn:K.navOff}" onclick="go('${k}')">
-                  ${ic}
-                  <span>${l}</span>
-                </a>
-              `).join('')}
-            </div>
-          </div>
-          <div class="px-2 pt-4 border-t border-slate-800 text-[11px] text-slate-400 font-medium flex items-center justify-between">
-            <span>Payday: Oct 15</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          </div>
-        </nav>
-
-        <!-- Main Content Surface -->
-        <main class="flex-1 max-w-[1100px] p-6 md:p-8 flex flex-col gap-5 overflow-y-auto">
-          ${VW[S.view]()}
-        </main>
-      </div>
-
-      <!-- Mobile Bottom Navigation Bar -->
-      <nav aria-label="Mobile Navigation" class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 flex items-center justify-around px-2 py-1 shadow-lg">
-        ${nav.slice(0,5).map(([k,l,ic])=>`
-          <a href="#${k}" class="${K.tabMob} ${S.view==k?'text-teal-900 font-extrabold':'text-slate-600'}" onclick="go('${k}')">
-            ${ic}
-            <span class="text-[10px] mt-0.5">${l}</span>
-          </a>
-        `).join('')}
-      </nav>
-
-      <!-- Accessible Modal Overlay -->
-      ${S.modal?`
-        <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick="if(event.target===this)op('')">
-          <div class="bg-white rounded-2xl p-6 sm:p-7 w-[460px] max-w-full shadow-2xl border border-slate-100 transition-all scale-100">
-            ${M[S.modal]()}
-          </div>
-        </div>
-      `:''}
-    `;
-  }
-
-  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.modal)op('')});
-  window.addEventListener('hashchange',()=>{
-    const v=location.hash.slice(1);
-    if(VW[v]){S.view=v;S.wid=0;S.pr=null;S.modal='';R()}
-  });
-  S.view=VW[location.hash.slice(1)]?location.hash.slice(1):'login';
+/* ---------- Alert import ---------- */
+const SAMPLES = [
+  'GCash: You have paid ₱189.00 to Jollibee. Ref 5012 884 991.',
+  'Maya: You received ₱1,500.00 from Juan Dela Cruz.',
+  'GoTyme: You sent ₱350.00 to Grab. Ref 88231.'
+];
+function fillSample(i) { S.raw = SAMPLES[i]; S.pr = null; R(); document.getElementById('raw')?.focus(); }
+function readAlert() {
+  const x = S.raw = val('raw');
+  if (!x) { S.pr = { err: 'Paste an alert first, or try one of the samples.' }; return R(); }
+  const amt = (x.match(/(?:₱|PHP\s?)\s?([\d,]+(?:\.\d+)?)/i) || [])[1];
+  if (!amt) { S.pr = { err: 'We couldn’t find a peso amount. Alerts usually look like “paid ₱189.00 to …”.' }; return R(); }
+  const isIn = /received|credited|cash[- ]?in|deposit/i.test(x), isOut = /paid|sent|transferred|purchase|debited|cash[- ]?out/i.test(x);
+  const s = (x.match(/(?:to|from|at)\s+([A-Z][\w&' -]*?)(?:\.|,|\s+Ref|$)/) || [])[1] || 'Unknown';
+  const w = S.w.find(z => new RegExp(z.n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(x));
+  const c = isIn && !isOut ? 'Income' : /jollibee|mcdo|food|coffee|milk ?tea/i.test(x) ? 'Food' : /grab|angkas|jeep|mrt|lrt/i.test(x) ? 'Transport' : /load|globe|smart/i.test(x) ? 'Load' : /meralco|wi-?fi|water|converge/i.test(x) ? 'Bills' : 'Others';
+  S.pr = { a: parseFloat(amt.replace(/,/g, '')), dir: isIn && !isOut ? 1 : -1, s, c, w: w ? w.id : S.w[0]?.id };
   R();
-  </script>
+}
+function confirmAlert() { const p = S.pr; addTx(val('pw'), p.a * p.dir, p.s, p.c); S.pr = null; S.raw = ''; go('ledger'); }
+
+/* ---------- Building blocks ---------- */
+const field = (id, label, input, hint = '') => {
+  const err = S.errors[id];
+  return `<div class="mb-4">
+    <label class="${C.label}" for="${id}">${label}</label>
+    ${input}
+    ${err ? `<p id="${id}-err" class="mt-1.5 text-sm text-alert">${esc(err)}</p>` : hint ? `<p class="mt-1.5 text-sm text-mute">${hint}</p>` : ''}
+  </div>`;
+};
+const inputAttrs = id => `id="${id}" name="${id}" class="${C.input}" ${S.errors[id] ? `aria-invalid="true" aria-describedby="${id}-err"` : ''}`;
+const draft = (id, fallback = '') => esc(S.draft[id] ?? fallback);
+const walletOptions = sel => S.w.map(w => `<option value="${w.id}" ${w.id == sel ? 'selected' : ''}>${esc(w.n)}</option>`).join('');
+
+function txRow(t, deletable) {
+  return `<li class="flex items-center gap-3 py-[7px]">
+    <span class="w-[34px] h-[34px] rounded-full bg-track text-ink-2 text-[15px] font-medium flex items-center justify-center shrink-0" aria-hidden="true">${esc(t.s.charAt(0).toUpperCase())}</span>
+    <div class="min-w-0 flex-1">
+      <div class="text-base text-ink truncate">${esc(t.s)}</div>
+      <div class="${C.meta} truncate">${esc(t.c)} · ${walletName(t.w)}</div>
+    </div>
+    <span class="tnum text-base font-medium whitespace-nowrap ${t.a > 0 ? 'text-gain' : 'text-ink'}">${signed(t.a)}</span>
+    ${deletable ? `<button type="button" class="${C.iconBtn} -mr-2" onclick="delTx(${t.id})" aria-label="Delete ${esc(t.s)}, ${signed(t.a)}">${icon(I.trash, 'w-[18px] h-[18px]')}</button>` : ''}
+  </li>`;
+}
+function ledgerList(list, { deletable = false, limit = Infinity, empty = 'No entries yet.' } = {}) {
+  const rows = list.slice(0, limit);
+  if (!rows.length) return `<p class="py-8 text-center ${C.meta}">${empty}</p>`;
+  const groups = [];
+  rows.forEach(t => { const g = groups.at(-1); if (g && g.d === t.d) g.items.push(t); else groups.push({ d: t.d, items: [t] }); });
+  return groups.map(g => `<section class="mt-3 first:mt-1">
+    <h3 class="text-[15px] font-medium text-ink pb-0.5">${dayLabel(g.d)}</h3>
+    <ul>${g.items.map(t => txRow(t, deletable)).join('')}</ul>
+  </section>`).join('');
+}
+const pageHead = (title, sub, actions = '') => `
+  <header class="flex flex-wrap items-center justify-between gap-4 mb-4">
+    <div>
+      ${sub ? `<p class="text-[15px] text-ink-2 mb-0.5">${sub}</p>` : ''}
+      <h1 class="${C.h1}">${title}</h1>
+    </div>
+    ${actions ? `<div class="flex gap-2.5">${actions}</div>` : ''}
+  </header>`;
+const cardHead = (title, action = '') => `<div class="flex items-center justify-between mb-1"><h2 class="${C.cardTitle}">${title}</h2>${action}</div>`;
+const longDate = () => new Date(TODAY).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+/* ---------- Dialogs ---------- */
+const dialogShell = (title, body, actions) => `
+  <div class="flex items-center justify-between mb-5">
+    <h2 id="modal-title" class="text-xl font-semibold text-ink">${title}</h2>
+    <button type="button" class="${C.iconBtn} -mr-2" onclick="closeModal()" aria-label="Close">${icon(I.close)}</button>
+  </div>
+  ${body}
+  <div class="flex justify-end gap-2.5 mt-6">${actions}</div>`;
+const cancelBtn = `<button type="button" class="${C.btn2}" onclick="closeModal()">Cancel</button>`;
+
+const M = {
+  tx: () => dialogShell('Add entry', `
+    <div class="grid grid-cols-2 gap-x-3">
+      ${field('ty', 'Type', `<select ${inputAttrs('ty')}><option value="-1" ${S.draft.ty === '1' ? '' : 'selected'}>Expense</option><option value="1" ${S.draft.ty === '1' ? 'selected' : ''}>Income</option></select>`)}
+      ${field('am', 'Amount', `<input ${inputAttrs('am')} type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" value="${draft('am')}" data-autofocus>`)}
+    </div>
+    <div class="grid grid-cols-2 gap-x-3">
+      ${field('mw', 'Wallet', `<select ${inputAttrs('mw')}>${walletOptions(S.draft.mw)}</select>`)}
+      ${field('mc', 'Category', `<select ${inputAttrs('mc')}>${CATEGORIES.map(c => `<option ${S.draft.mc === c ? 'selected' : ''}>${c}</option>`).join('')}</select>`)}
+    </div>
+    ${field('nt', 'Merchant or note', `<input ${inputAttrs('nt')} placeholder="e.g. Jollibee" value="${draft('nt')}">`, 'Optional')}`,
+    `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveTx()">Save entry</button>`),
+
+  wallet: () => dialogShell('Add wallet', `
+    ${field('wnm', 'Name', `<input ${inputAttrs('wnm')} placeholder="e.g. MariBank" value="${draft('wnm')}" data-autofocus>`)}
+    ${field('wb', 'Current balance', `<input ${inputAttrs('wb')} type="number" inputmode="decimal" step="0.01" placeholder="0.00" value="${draft('wb')}">`, 'What the wallet’s app shows right now.')}`,
+    `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveWallet()">Add wallet</button>`),
+
+  bill: () => dialogShell('Set aside a bill', `
+    ${field('bn', 'Bill', `<input ${inputAttrs('bn')} placeholder="e.g. Converge" value="${draft('bn')}" data-autofocus>`)}
+    <div class="grid grid-cols-2 gap-x-3">
+      ${field('ba', 'Amount', `<input ${inputAttrs('ba')} type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" value="${draft('ba')}">`)}
+      ${field('bd', 'Due', `<input ${inputAttrs('bd')} placeholder="e.g. Oct 12" value="${draft('bd')}">`, 'Optional')}
+    </div>
+    <p class="${C.meta}">This amount is taken out before your daily safe-to-spend is worked out.</p>`,
+    `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveBill()">Set aside</button>`),
+
+  reconcile: () => {
+    const w = S.w.find(x => x.id == S.wid);
+    return dialogShell(`Correct ${esc(w.n)} balance`, `
+      <p class="text-[15px] text-ink-2 mb-4">One Wallet has <b class="tnum font-semibold text-ink">${peso(w.b)}</b>. Enter what the ${esc(w.n)} app actually shows, and we’ll add a correction entry for the difference.</p>
+      ${field('rb', 'Balance in the app', `<input ${inputAttrs('rb')} type="number" inputmode="decimal" step="0.01" placeholder="${w.b.toFixed(2)}" value="${draft('rb')}" data-autofocus>`)}`,
+      `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveReconcile()">Save correction</button>`);
+  },
+
+  reset: () => dialogShell('Reset demo data?', `
+    <p class="text-[15px] text-ink-2">This replaces every wallet, entry and bill in this browser with the original sample data. It can’t be undone.</p>`,
+    `${cancelBtn}<button type="button" class="${C.btnDanger}" onclick="resetData()" data-autofocus>Reset data</button>`)
+};
+
+/* ---------- Views ---------- */
+const V = {
+  login: () => `
+    <main class="min-h-dvh flex items-center justify-center p-6">
+      <div class="w-full max-w-[400px]">
+        <div class="flex items-center gap-2.5 mb-8">
+          <span class="w-8 h-8 rounded-ctl bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-3.5 h-2.5 rounded-[2px] bg-card"></span></span>
+          <span class="text-lg font-semibold">One Wallet</span>
+        </div>
+        <h1 class="${C.h1} mb-2">Know what you can spend today.</h1>
+        <p class="text-[15px] text-ink-2 mb-6">GCash, Maya, GoTyme and cash in one ledger, with bills set aside and a safe daily amount until payday.</p>
+        <div class="${C.card} p-5">
+          ${field('login-email', 'Email', `<input id="login-email" class="${C.input}" type="email" autocomplete="username" value="demo@onewallet.ph">`)}
+          ${field('login-pwd', 'Password', `<input id="login-pwd" class="${C.input}" type="password" autocomplete="current-password" value="demo1234">`)}
+          <button type="button" class="${C.btn} w-full" onclick="signIn()">Sign in</button>
+        </div>
+        <p class="${C.meta} mt-4">Demo build: any email works. Data stays in this browser.</p>
+      </div>
+    </main>`,
+
+  today: () => {
+    const tot = total(), nb = S.b.length;
+   return `
+      ${pageHead('Today', longDate(), `
+        <button type="button" class="${C.btn2} max-sm:hidden" onclick="go('import')">Import alert</button>
+        <button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-[18px] h-[18px]')}Add entry</button>`)}
+
+      <section class="bg-marigold rounded-card px-4 py-[9px] flex flex-wrap items-center justify-between gap-x-10 gap-y-4 mb-4" aria-labelledby="runway-label">
+        <div>
+          <p id="runway-label" class="text-base text-ink">Safe to spend per day</p>
+          <p class="tnum text-[48px] leading-[1.1] font-semibold tracking-[-0.02em] my-0.5">${peso(perDay())}</p>
+          <p class="text-base text-ink">for the next ${daysLeft()} days, until payday on ${shortDate(PAYDAY.slice(5))}</p>
+        </div>
+        <dl class="tnum text-base w-full sm:w-[330px]">
+          <div class="flex justify-between py-0.5"><dt>Across ${S.w.length} wallet${S.w.length === 1 ? '' : 's'}</dt><dd>${peso(tot)}</dd></div>
+          <div class="flex justify-between py-0.5 border-b border-ink/80 pb-1"><dt>Set aside for ${nb} bill${nb === 1 ? '' : 's'}</dt><dd>− ${peso(reserved())}</dd></div>
+          <div class="flex justify-between pt-1.5 py-0.5"><dt>Free to spend</dt><dd>${peso(free())}</dd></div>
+          <div class="flex justify-between py-0.5 font-semibold"><dt class="font-normal">÷ ${daysLeft()} days</dt><dd>${peso(perDay())} / day</dd></div>
+        </dl>
+      </section>
+
+      <div class="grid gap-4 lg:grid-cols-[1.23fr_1fr] items-start">
+        <section class="${C.card} px-4 pt-4 pb-2">
+          ${cardHead('Ledger', `<a href="#ledger" class="${C.link}">See all</a>`)}
+          ${ledgerList(S.t, { limit: 5, empty: 'No entries yet. Add one or import an alert.' })}
+        </section>
+
+        <div class="grid gap-4">
+          <section class="${C.card} p-4">
+            ${cardHead('Wallets', `<button type="button" class="${C.link} inline-flex items-center gap-1" onclick="openModal('wallet')">${icon(I.plus, 'w-4 h-4')}Add</button>`)}
+            <ul class="mt-2">
+              ${S.w.map(w => `<li>
+                <button type="button" class="w-full text-left py-0 group cursor-pointer" onclick="openWallet(${w.id})" aria-label="${esc(w.n)}, ${peso(w.b)}. Open wallet">
+                  <span class="flex justify-between text-base"><span class="group-hover:underline underline-offset-4">${esc(w.n)}</span><span class="tnum">${peso(w.b)}</span></span>
+                  <span class="block h-[3px] mt-1 rounded-full bg-track overflow-hidden"><span class="block h-full rounded-full bg-ink" style="width:${tot > 0 ? Math.max(0, w.b) / tot * 100 : 0}%"></span></span>
+                </button>
+              </li>`).join('') || `<li class="py-4 ${C.meta}">No wallets yet.</li>`}
+            </ul>
+            <div class="flex justify-between text-base font-medium pt-2 mt-1 border-t border-line"><span>Total</span><span class="tnum">${peso(tot)}</span></div>
+          </section>
+
+          <section class="${C.card} p-4">
+            ${cardHead('Bills set aside', `<a href="#bills" class="${C.link}">Manage</a>`)}
+            <ul class="mt-1">
+              ${S.b.map(b => `<li class="flex justify-between text-base py-1.5"><span>${esc(b.n)} <span class="text-mute">· due ${esc(b.d)}</span></span><span class="tnum">${peso(b.a)}</span></li>`).join('') || `<li class="py-3 ${C.meta}">Nothing set aside.</li>`}
+            </ul>
+          </section>
+        </div>
+      </div>`;
+  },
+
+  wallets: () => {
+    const w = S.w.find(x => x.id == S.wid);
+    if (w) {
+      const list = S.t.filter(t => t.w == w.id);
+      return `
+        <button type="button" class="${C.link} inline-flex items-center gap-1 mb-3 -ml-1" onclick="S.wid=0;R()">${icon(I.back, 'w-4 h-4')}All wallets</button>
+        ${pageHead(esc(w.n), 'Wallet', `<button type="button" class="${C.btn2}" onclick="openModal('reconcile')">Correct balance</button>`)}
+        <section class="${C.card} p-5 mb-4">
+          <p class="text-base text-ink-2">Balance in One Wallet</p>
+          <p class="tnum text-[40px] leading-tight font-semibold tracking-[-0.02em]">${peso(w.b)}</p>
+          <p class="${C.meta} mt-1">${list.length} entr${list.length === 1 ? 'y' : 'ies'} · If this differs from the ${esc(w.n)} app, use Correct balance.</p>
+        </section>
+        <section class="${C.card} px-4 pt-4 pb-2">
+          ${cardHead('Entries')}
+          ${ledgerList(list, { deletable: true, empty: `No entries for ${esc(w.n)} yet.` })}
+        </section>`;
+    }
+    const tot = total();
+    return `
+      ${pageHead('Wallets', `${S.w.length} wallets · ${peso(tot)} total`, `<button type="button" class="${C.btn}" onclick="openModal('wallet')">${icon(I.plus, 'w-[18px] h-[18px]')}Add wallet</button>`)}
+      <section class="${C.card}">
+        <ul class="divide-y divide-line">
+          ${S.w.map(w => {
+            const count = S.t.filter(t => t.w == w.id).length;
+            return `<li><button type="button" class="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-paper cursor-pointer" onclick="openWallet(${w.id})">
+              <span class="flex-1 min-w-0"><span class="block text-base font-medium">${esc(w.n)}</span><span class="block ${C.meta}">${count} entr${count === 1 ? 'y' : 'ies'} · ${tot > 0 ? Math.round(Math.max(0, w.b) / tot * 100) : 0}% of total</span></span>
+              <span class="tnum text-base">${peso(w.b)}</span>
+              <span class="text-mute">${icon(I.chevron, 'w-4 h-4')}</span>
+            </button></li>`;
+          }).join('') || `<li class="p-8 text-center ${C.meta}">Add your first wallet to start.</li>`}
+        </ul>
+      </section>`;
+  },
+
+  ledger: () => {
+    const list = S.t.filter(t => !S.fw || t.w == S.fw);
+    const chip = (id, label) => `<button type="button" role="radio" aria-checked="${S.fw == id}" class="h-9 px-3.5 rounded-full text-[15px] border cursor-pointer ${S.fw == id ? 'bg-ink text-card border-ink' : 'bg-card text-ink border-line hover:border-ink'}" onclick="S.fw=${id};R()">${label}</button>`;
+    return `
+      ${pageHead('Ledger', `${S.t.length} entries`, `<button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-[18px] h-[18px]')}Add entry</button>`)}
+      <div role="radiogroup" aria-label="Filter by wallet" class="flex flex-wrap gap-2 mb-4">${chip(0, 'All wallets')}${S.w.map(w => chip(w.id, esc(w.n))).join('')}</div>
+      <section class="${C.card} px-4 pt-3 pb-2">
+        ${ledgerList(list, { deletable: true, empty: S.fw ? 'No entries for this wallet.' : 'No entries yet. Add one or import an alert.' })}
+      </section>`;
+  },
+
+  import: () => {
+    const p = S.pr;
+    return `
+      ${pageHead('Import alert', 'Turn a payment SMS into an entry')}
+      <section class="${C.card} p-5 mb-4">
+        <label class="${C.label}" for="raw">Paste the alert text</label>
+        <textarea id="raw" rows="3" class="${C.input} h-auto py-2.5 leading-relaxed resize-y" placeholder="GCash: You have paid ₱189.00 to Jollibee. Ref 5012 884 991.">${esc(S.raw)}</textarea>
+        <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
+          <button type="button" class="${C.btn}" onclick="readAlert()">Read alert</button>
+          <div class="flex flex-wrap items-center gap-2"><span class="${C.meta}">Try a sample:</span>
+            ${['GCash', 'Maya', 'GoTyme'].map((n, i) => `<button type="button" class="h-8 px-3 rounded-full text-sm border border-line bg-card hover:border-ink cursor-pointer" onclick="fillSample(${i})">${n}</button>`).join('')}
+          </div>
+        </div>
+      </section>
+      ${p ? p.err ? `
+        <div role="alert" class="${C.card} border-alert p-4 text-[15px] text-alert">${esc(p.err)}</div>` : `
+        <section class="${C.card} p-5" aria-labelledby="found">
+          <h2 id="found" class="${C.cardTitle} mb-3">Here’s what we found</h2>
+          <dl class="tnum text-base divide-y divide-line border-y border-line mb-5">
+            <div class="flex justify-between py-2"><dt class="text-ink-2">Amount</dt><dd class="font-medium ${p.dir > 0 ? 'text-gain' : ''}">${signed(p.a * p.dir)}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-ink-2">Type</dt><dd>${p.dir > 0 ? 'Income' : 'Expense'}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-ink-2">${p.dir > 0 ? 'From' : 'To'}</dt><dd>${esc(p.s)}</dd></div>
+            <div class="flex justify-between py-2"><dt class="text-ink-2">Category</dt><dd>${esc(p.c)}</dd></div>
+          </dl>
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[200px]">${field('pw', 'Add to wallet', `<select id="pw" class="${C.input}">${walletOptions(p.w)}</select>`).replace('mb-4', 'mb-0')}</div>
+            <button type="button" class="${C.btn}" onclick="confirmAlert()">Add to ledger</button>
+          </div>
+        </section>` : ''}`;
+  },
+
+  bills: () => `
+    ${pageHead('Bills', `${peso(reserved())} set aside until payday`, `<button type="button" class="${C.btn}" onclick="openModal('bill')">${icon(I.plus, 'w-[18px] h-[18px]')}Set aside a bill</button>`)}
+    <section class="${C.card}">
+      <ul class="divide-y divide-line">
+        ${S.b.map(b => `<li class="flex items-center gap-4 px-4 py-3">
+          <span class="flex-1 min-w-0"><span class="block text-base font-medium">${esc(b.n)}</span><span class="block ${C.meta}">Due ${esc(b.d)}</span></span>
+          <span class="tnum text-base">${peso(b.a)}</span>
+          <button type="button" class="${C.iconBtn} -mr-2" onclick="delBill(${b.id})" aria-label="Remove ${esc(b.n)}">${icon(I.trash, 'w-[18px] h-[18px]')}</button>
+        </li>`).join('') || `<li class="p-8 text-center ${C.meta}">No bills set aside. Add rent, Wi-Fi or subscriptions so your daily amount stays honest.</li>`}
+      </ul>
+      ${S.b.length ? `<div class="flex justify-between px-4 py-3 border-t border-line text-base font-medium"><span>Total set aside</span><span class="tnum">${peso(reserved())}</span></div>` : ''}
+    </section>`,
+
+  insights: () => {
+    const byCat = {};
+    S.t.filter(t => t.a < 0 && t.s !== 'Balance correction').forEach(t => byCat[t.c] = (byCat[t.c] || 0) - t.a);
+    const inc = S.t.filter(t => t.a > 0 && t.s !== 'Balance correction').reduce((s, t) => s + t.a, 0);
+    const out = Object.values(byCat).reduce((s, v) => s + v, 0);
+    const max = Math.max(1, ...Object.values(byCat));
+    const bar = (pct, cls = 'bg-ink') => `<span class="block h-1.5 rounded-full bg-track overflow-hidden"><span class="block h-full rounded-full ${cls}" style="width:${pct}%"></span></span>`;
+    return `
+      ${pageHead('Insights', 'Where the money went this period')}
+      <div class="grid gap-4 lg:grid-cols-2 items-start">
+        <section class="${C.card} p-4">
+          ${cardHead('Money in vs out')}
+          <div class="mt-3 space-y-4 tnum text-base">
+            <div><div class="flex justify-between mb-1.5"><span>In</span><span class="text-gain">${peso(inc)}</span></div>${bar(inc ? 100 : 0, 'bg-gain')}</div>
+            <div><div class="flex justify-between mb-1.5"><span>Out</span><span>${peso(out)}</span></div>${bar(inc ? Math.min(100, out / inc * 100) : out ? 100 : 0)}</div>
+            <p class="${C.meta}">${inc ? `You’ve spent ${Math.round(out / inc * 100)}% of what came in.` : 'No income recorded yet.'}</p>
+          </div>
+        </section>
+        <section class="${C.card} p-4">
+          ${cardHead('Spending by category')}
+          <ul class="mt-3 space-y-3 tnum text-base">
+            ${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<li><div class="flex justify-between mb-1.5"><span>${esc(k)}</span><span>${peso(v)}</span></div>${bar(v / max * 100)}</li>`).join('') || `<li class="${C.meta} py-4">No spending recorded yet.</li>`}
+          </ul>
+        </section>
+      </div>`;
+  },
+
+  settings: () => `
+    ${pageHead('Settings')}
+    <section class="${C.card} divide-y divide-line">
+      <div class="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div><p class="text-base font-medium">Sign out</p><p class="${C.meta}">Your data stays saved in this browser.</p></div>
+        <button type="button" class="${C.btn2}" onclick="signOut()">Sign out</button>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div><p class="text-base font-medium">Reset demo data</p><p class="${C.meta}">Replace everything with the original sample wallets, entries and bills.</p></div>
+        <button type="button" class="${C.btn2} !border-alert !text-alert" onclick="openModal('reset')">Reset…</button>
+      </div>
+    </section>`,
+
+  help: () => `
+    ${pageHead('Help')}
+    <div class="grid gap-4 lg:grid-cols-2 items-start">
+      <section class="${C.card} p-4">
+        ${cardHead('How the daily amount works')}
+        <ol class="mt-2 space-y-2 text-base text-ink-2 list-decimal pl-5">
+          <li>Add each wallet with the balance its app shows.</li>
+          <li>Set aside bills due before payday.</li>
+          <li>What’s left, divided by the days until payday, is your safe amount per day.</li>
+        </ol>
+      </section>
+      <section class="${C.card} p-4">
+        ${cardHead('Questions')}
+        <dl class="mt-2 space-y-3 text-base">
+          <div><dt class="font-medium">Does it connect to my bank?</dt><dd class="text-ink-2">No. It only reads alert text you paste in.</dd></div>
+          <div><dt class="font-medium">Is my data uploaded?</dt><dd class="text-ink-2">No. Everything stays in this browser.</dd></div>
+          <div><dt class="font-medium">A balance looks wrong.</dt><dd class="text-ink-2">Open the wallet and choose Correct balance. We add an entry for the difference so your history stays traceable.</dd></div>
+        </dl>
+      </section>
+    </div>`,
+
+  more: () => `
+    ${pageHead('More')}
+    <section class="${C.card}">
+      <ul class="divide-y divide-line">
+        ${[['wallets', 'Wallets'], ['insights', 'Insights'], ['settings', 'Settings'], ['help', 'Help']].map(([k, l]) => `<li><a href="#${k}" class="flex items-center justify-between px-4 py-3.5 text-base hover:bg-paper">${l}<span class="text-mute">${icon(I.chevron, 'w-4 h-4')}</span></a></li>`).join('')}
+      </ul>
+    </section>`
+};
+
+/* ---------- Shell & render ---------- */
+const NAV = [['today', 'Today'], ['wallets', 'Wallets'], ['ledger', 'Ledger'], ['import', 'Import alert'], ['bills', 'Bills'], ['insights', 'Insights']];
+const NAV2 = [['settings', 'Settings'], ['help', 'Help']];
+const TABS = [['today', 'Today', I.today], ['ledger', 'Ledger', I.ledger], ['import', 'Import', I.import], ['bills', 'Bills', I.bills], ['more', 'More', I.menu]];
+const MORE_GROUP = ['more', 'wallets', 'insights', 'settings', 'help'];
+
+const navLink = ([k, l]) => {
+  const on = S.view === k;
+  return `<a href="#${k}" ${on ? 'aria-current="page"' : ''} class="relative flex items-center h-[35px] pl-[31px] pr-3 text-base ${on ? 'font-semibold text-ink' : 'text-ink-2 hover:text-ink'}">
+    ${on ? '<span class="absolute left-0 top-1 bottom-1 w-1 rounded-r-full bg-marigold" aria-hidden="true"></span>' : ''}${l}</a>`;
+};
+
+function R() {
+  try { localStorage.setItem('onewallet', JSON.stringify({ w: S.w, t: S.t, b: S.b, n: S.n })); } catch (e) {}
+  const app = document.getElementById('app');
+  if (S.view === 'login') { app.innerHTML = V.login(); document.title = 'Sign in · One Wallet'; return; }
+
+  const label = [...NAV, ...NAV2, ['more', 'More']].find(n => n[0] === S.view)?.[1] ?? 'One Wallet';
+  document.title = `${label} · One Wallet`;
+
+  app.innerHTML = `
+    <div class="min-h-dvh md:grid md:grid-cols-[244px_1fr]">
+      <aside class="max-md:hidden sticky top-0 h-dvh flex flex-col border-r border-line">
+        <a href="#today" class="flex items-center gap-2.5 px-[31px] pt-7 pb-[30px]">
+          <span class="w-[30px] h-[30px] rounded-ctl bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-3.5 h-2.5 rounded-[2px] bg-card"></span></span>
+          <span class="text-lg font-semibold">One Wallet</span>
+        </a>
+        <nav aria-label="Main" class="flex flex-col">${NAV.map(navLink).join('')}</nav>
+        <nav aria-label="Account" class="mt-auto flex flex-col pb-4">${NAV2.map(navLink).join('')}</nav>
+        <p class="border-t border-line px-[31px] py-4 text-[15px] text-ink-2">Next payday · ${shortDate(PAYDAY.slice(5))}</p>
+      </aside>
+
+      <div class="min-w-0">
+        <header class="md:hidden flex items-center justify-between px-4 pt-4">
+          <span class="flex items-center gap-2"><span class="w-6 h-6 rounded-[6px] bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-2.5 h-2 rounded-[1px] bg-card"></span></span><span class="font-semibold">One Wallet</span></span>
+          <span class="${C.meta}">Payday ${shortDate(PAYDAY.slice(5))}</span>
+        </header>
+        <main id="main" class="max-w-[1040px] px-4 pt-5 pb-28 md:px-[30px] md:pt-[26px] md:pb-10">${V[S.view]()}</main>
+      </div>
+    </div>
+
+    <nav aria-label="Main" class="md:hidden fixed inset-x-0 bottom-0 z-30 bg-card border-t border-line grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
+      ${TABS.map(([k, l, ic]) => {
+        const on = S.view === k || (k === 'more' && MORE_GROUP.includes(S.view));
+        return `<a href="#${k}" ${on ? 'aria-current="page"' : ''} class="flex flex-col items-center justify-center gap-0.5 h-16 text-xs ${on ? 'text-ink font-semibold' : 'text-mute'}">
+          <span class="relative">${icon(ic, 'w-6 h-6')}${on ? '<span class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-[3px] rounded-full bg-marigold" aria-hidden="true"></span>' : ''}</span>
+          <span class="mt-1">${l}</span></a>`;
+      }).join('')}
+    </nav>
+
+    ${S.modal ? `
+      <div class="fixed inset-0 z-50 bg-ink/40 flex items-end sm:items-center justify-center sm:p-4" onclick="if(event.target===this)closeModal()">
+        <div role="dialog" aria-modal="true" aria-labelledby="modal-title" class="dialog-in w-full sm:w-[460px] max-h-[90dvh] overflow-y-auto bg-card border border-line rounded-t-card sm:rounded-card p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          ${M[S.modal]()}
+        </div>
+      </div>` : ''}`;
+
+  if (S.modal) {
+    const firstErr = document.querySelector('[aria-invalid="true"]');
+    (firstErr || document.querySelector('[data-autofocus]') || document.querySelector('[role="dialog"] button'))?.focus();
+  }
+}
+
+/* Keep focus inside an open dialog; Escape closes it. */
+window.addEventListener('keydown', e => {
+  if (!S.modal) return;
+  if (e.key === 'Escape') { closeModal(); return; }
+  if (e.key === 'Enter' && e.target.matches('[role="dialog"] input')) { e.preventDefault(); document.querySelector('[role="dialog"] .flex.justify-end button:last-child')?.click(); return; }
+  if (e.key !== 'Tab') return;
+  const f = [...document.querySelectorAll('[role="dialog"] :is(button,input,select,textarea,a[href])')];
+  if (!f.length) return;
+  if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f.at(-1).focus(); }
+  else if (!e.shiftKey && document.activeElement === f.at(-1)) { e.preventDefault(); f[0].focus(); }
+});
+
+/* Old hashes from the previous version keep working. */
+const ALIAS = { dash: 'today', wal: 'wallets', tx: 'ledger', imp: 'import', bill: 'bills', ins: 'insights', set: 'settings' };
+function route() {
+  let v = location.hash.slice(1);
+  if (ALIAS[v]) { location.replace('#' + ALIAS[v]); return; }
+  if (!V[v]) v = 'login';
+  const changed = S.view !== v;
+  S.view = v; S.modal = ''; S.pr = changed ? null : S.pr;
+  if (changed && !keepWallet) S.wid = 0;
+  keepWallet = false;
+  R();
+  if (changed) window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+route();
+</script>
 </body>
 </html>

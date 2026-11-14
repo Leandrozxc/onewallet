@@ -1,2 +1,38 @@
 @import "tailwindcss";
 @source "../index.html";
+
+/* One Wallet design tokens — "passbook ledger" direction.
+   One accent (marigold), one warm grey family, radius scale: cards 10, controls 8, badges/bars full. */
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-paper: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-line: #E2E8F0;
+  --color-track: #E2E8F0;
+  --color-ink: #0F172A;
+  --color-ink-2: #334155;
+  --color-mute: #64748B;
+  --color-marigold: #F59E0B;
+  --color-gain: #15803D;
+  --color-alert: #B91C1C;
+
+  --radius-card: 10px;
+  --radius-ctl: 8px;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-feature-settings: "tnum" 0; }
+  ::selection { background: var(--color-marigold); color: var(--color-ink); }
+  :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+}
+
+@layer components {
+  .dialog-in { animation: dialog-in 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+  @keyframes dialog-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+}
