@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="./dist/output.css?v=20261115" rel="stylesheet">
+  <link href="./dist/output.css?v=20261115b" rel="stylesheet">
   <style>
     /* Critical fallback tokens & shell rules so cached/delayed CSS never breaks layout or icon sizing */
     :root {
@@ -53,6 +53,12 @@ const dayLabel = md => {
   if (md === yesterday) return `Yesterday · ${shortDate(md)}`;
   return shortDate(md);
 };
+const cleanDigits = s => String(s ?? '').replace(/\D/g, '').slice(0, 16);
+const formatCardNum = (num, show) => {
+  const d = cleanDigits(num || '4532891023414821').padEnd(16, '0');
+  if (show) return `${d.slice(0, 4)} ${d.slice(4, 8)} ${d.slice(8, 12)} ${d.slice(12, 16)}`;
+  return `•••• •••• •••• ${d.slice(12, 16)}`;
+};
 
 /* ---------- Icons (one 1.5px line family with explicit HTML width/height fallback) ---------- */
 const icon = (d, cls = 'w-5 h-5', sz = 18) => `<svg width="${sz}" height="${sz}" class="${cls} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -66,7 +72,83 @@ const I = {
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
   trash: '<path d="M5 7h14M10 11v6M14 11v6M7 7l1 13h8l1-13M9 7V4h6v3"/>',
-  chevron: '<path d="m9 5 7 7-7 7"/>'
+  chevron: '<path d="m9 5 7 7-7 7"/>',
+  eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.1A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a16 16 0 0 1-3.2 4.3"/><path d="M6.6 6.6C4 8.3 2 12 2 12s3.6 7 10 7a10.6 10.6 0 0 0 5.4-1.4"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  card: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>'
+};
+
+/* ---------- Philippine Bank & Digital Wallet Card Styles (inspired by reference gallery) ---------- */
+const CARD_STYLES = [
+  { id: 'bdo-gold', group: 'Credit & Bank Cards', bank: 'BDO', tier: 'Gold', net: 'mc', bg: '#5C4922', accent: '#C8A862', light: false, motif: 'grid' },
+  { id: 'bdo-plat', group: 'Credit & Bank Cards', bank: 'BDO', tier: 'Platinum', net: 'mc', bg: '#1E293B', accent: '#64748B', light: false, motif: 'grid' },
+  { id: 'bpi-gold', group: 'Credit & Bank Cards', bank: 'BPI', tier: 'Gold Rewards', net: 'mc', bg: '#614B20', accent: '#CCA95E', light: false, motif: 'crest' },
+  { id: 'bpi-plat', group: 'Credit & Bank Cards', bank: 'BPI', tier: 'Platinum Rewards', net: 'mc', bg: '#223042', accent: '#64748B', light: false, motif: 'rings' },
+  { id: 'ew-gold', group: 'Credit & Bank Cards', bank: 'eastwest', tier: 'Gold', net: 'jcb', bg: '#5E4A24', accent: '#D1AE66', light: false, motif: 'ribbon' },
+  { id: 'ew-plat', group: 'Credit & Bank Cards', bank: 'eastwest', tier: 'Platinum', net: 'jcb', bg: '#232936', accent: '#64748B', light: false, motif: 'ribbon' },
+  { id: 'mb-gold', group: 'Credit & Bank Cards', bank: 'Metrobank', tier: 'Gold', net: 'mc', bg: '#594520', accent: '#C7A258', light: false, motif: 'wave' },
+  { id: 'mb-plat', group: 'Credit & Bank Cards', bank: 'Metrobank', tier: 'Platinum', net: 'mc', bg: '#1E2B3C', accent: '#64748B', light: false, motif: 'wave' },
+  { id: 'rcbc-gold', group: 'Credit & Bank Cards', bank: 'RCBC', tier: 'Hexagon Gold', net: 'mc', bg: '#584622', accent: '#C6A35B', light: false, motif: 'hex' },
+  { id: 'rcbc-plat', group: 'Credit & Bank Cards', bank: 'RCBC', tier: 'Visa Platinum', net: 'visa', bg: '#0B1324', accent: '#3698D4', light: false, motif: 'horizon' },
+  { id: 'ub-pearl', group: 'Credit & Bank Cards', bank: 'UnionBank', tier: 'Platinum', net: 'mc', bg: '#E6ECF5', accent: '#8C9BAE', light: true, motif: 'pillar' },
+  { id: 'maya-black', group: 'Digital Banks & E-Wallets', bank: 'maya', tier: 'Black Virtual', net: 'visa', bg: '#0B0F19', accent: '#2D3A4B', light: false, motif: 'rings' },
+  { id: 'gotyme', group: 'Digital Banks & E-Wallets', bank: 'GoTyme', tier: 'Visa Debit', net: 'visa', bg: '#1E293B', accent: '#1498B5', light: false, motif: 'wave' },
+  { id: 'cimb', group: 'Digital Banks & E-Wallets', bank: 'CIMB', tier: 'Virtual Debit', net: 'mc', bg: '#5A1827', accent: '#C82347', light: false, motif: 'ribbon' },
+  { id: 'gcash', group: 'Digital Banks & E-Wallets', bank: 'GCash', tier: 'Mastercard', net: 'mc', bg: '#0B1E3B', accent: '#2B6CB0', light: false, motif: 'wave' },
+  { id: 'cash', group: 'Digital Banks & E-Wallets', bank: 'Cash', tier: 'Passbook Gold', net: 'cash', bg: '#5C4922', accent: '#C8A862', light: false, motif: 'grid' }
+];
+const getCardStyle = id => CARD_STYLES.find(s => s.id === id) || CARD_STYLES[0];
+
+const emvChipSvg = (silver = false) => `<svg width="34" height="24" viewBox="0 0 34 24" fill="none" aria-hidden="true">
+  <rect x="0.5" y="0.5" width="33" height="23" rx="4" fill="${silver ? '#CBD5E1' : '#D4B475'}" stroke="${silver ? '#94A3B8' : '#A38343'}"/>
+  <path d="M11 1v22M23 1v22M1 9h10M23 9h10M1 15h10M23 15h10" stroke="${silver ? '#64748B' : '#7C5E26'}" stroke-width="1"/>
+</svg>`;
+
+const nfcSvg = (light = false) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${light ? '#334155' : '#CBD5E1'}" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
+  <path d="M8.5 14.5a4 4 0 0 0 0-5M11.5 17a7.5 7.5 0 0 0 0-10M14.5 19.5a11 11 0 0 0 0-15"/>
+</svg>`;
+
+const netBadgeSvg = (net, light = false) => {
+  if (net === 'mc') return `<svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden="true"><circle cx="14" cy="11" r="8.5" fill="#EB001B" fill-opacity="0.9"/><circle cx="22" cy="11" r="8.5" fill="#F79E1B" fill-opacity="0.9"/></svg>`;
+  if (net === 'jcb') return `<svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden="true"><rect x="3" y="3" width="9" height="16" rx="2.5" fill="#0066B2"/><rect x="13.5" y="3" width="9" height="16" rx="2.5" fill="#C82347"/><rect x="24" y="3" width="9" height="16" rx="2.5" fill="#15803D"/></svg>`;
+  if (net === 'visa') return `<svg width="38" height="22" viewBox="0 0 38 22" fill="none" aria-hidden="true"><rect x="1" y="2" width="36" height="18" rx="3" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-opacity="0.35"/><path d="M8 7l2.5 8L13 7M16 7v8M24 7.5c-1-.4-2.5-.3-2.5 1 0 1.8 3 1.4 3 3.5 0 1.6-1.8 2.2-3.2 1.7M27.5 15L30 7l2.5 8M28.3 12.5h3.4" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  return `<svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden="true"><rect x="2" y="3" width="32" height="16" rx="3" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-opacity="0.45"/><circle cx="18" cy="11" r="4" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-width="1.4"/></svg>`;
+};
+
+const motifSvg = st => {
+  const c = st.accent;
+  if (st.motif === 'grid') return `<svg width="110" height="80" viewBox="0 0 110 80" fill="none" class="absolute right-0 bottom-0 opacity-25 pointer-events-none" aria-hidden="true"><rect x="18" y="8" width="42" height="64" rx="6" fill="${c}"/><rect x="48" y="22" width="54" height="44" rx="6" fill="${c}"/></svg>`;
+  if (st.motif === 'hex') return `<svg width="110" height="80" viewBox="0 0 110 80" fill="none" class="absolute right-2 bottom-1 opacity-30 pointer-events-none" aria-hidden="true"><polygon points="55,6 92,26 92,62 55,78 18,62 18,26" fill="${c}"/></svg>`;
+  if (st.motif === 'ribbon') return `<svg width="110" height="80" viewBox="0 0 110 80" fill="none" class="absolute right-0 bottom-0 opacity-25 pointer-events-none" aria-hidden="true"><path d="M10 80 C35 30, 75 20, 110 5 L110 80 Z" fill="${c}"/></svg>`;
+  if (st.motif === 'horizon') return `<svg width="110" height="80" viewBox="0 0 110 80" fill="none" class="absolute right-0 bottom-0 opacity-30 pointer-events-none" aria-hidden="true"><path d="M0 75 Q55 25 110 55 L110 80 L0 80 Z" fill="${c}"/></svg>`;
+  if (st.motif === 'pillar') return `<svg width="110" height="80" viewBox="0 0 110 80" fill="none" class="absolute right-4 top-0 opacity-30 pointer-events-none" aria-hidden="true"><rect x="42" y="0" width="28" height="68" rx="14" fill="${c}"/></svg>`;
+  if (st.motif === 'rings') return `<svg width="110" height="80" viewBox="0 0 110 80" fill="none" class="absolute right-0 bottom-0 opacity-25 pointer-events-none" aria-hidden="true"><circle cx="75" cy="45" r="34" stroke="${c}" stroke-width="6"/><circle cx="75" cy="45" r="20" stroke="${c}" stroke-width="3"/></svg>`;
+  return `<svg width="110" height="80" viewBox="0 0 110 80" fill="none" class="absolute right-0 bottom-0 opacity-25 pointer-events-none" aria-hidden="true"><path d="M0 65 Q50 20 110 35 L110 80 L0 80 Z" fill="${c}"/></svg>`;
+};
+
+const bankBrandHtml = (st, customName) => {
+  const txt = st.light ? 'text-ink' : 'text-white';
+  const sub = st.light ? 'text-ink-2' : 'text-white/80';
+  const label = esc(customName || st.bank);
+  if (st.bank === 'eastwest') {
+    return `<span class="inline-flex items-center gap-1.5 font-semibold text-base tracking-tight ${txt}">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><polygon points="8,1 15,8 8,15 1,8" fill="#DB2777"/><circle cx="8" cy="8" r="2.2" fill="#FBBF24"/></svg>${label}</span>`;
+  }
+  if (st.bank === 'BPI') {
+    return `<span class="inline-flex items-center gap-1.5 font-bold text-base tracking-tight ${txt}">
+      <span class="px-1.5 py-0.5 rounded-[4px] border ${st.light ? 'border-ink/30' : 'border-white/30'} text-xs font-semibold">BPI</span>${customName && customName !== 'BPI' ? `<span class="font-medium text-sm ${sub}">${esc(customName)}</span>` : ''}</span>`;
+  }
+  if (st.bank === 'RCBC') {
+    return `<span class="inline-flex items-center gap-1.5 font-bold text-sm tracking-tight ${txt}">
+      <span class="px-1.5 py-0.5 rounded-[4px] border ${st.light ? 'border-ink/30' : 'border-white/35'}">RCBC</span>${customName && customName !== 'RCBC' ? `<span class="font-medium ${sub}">${esc(customName)}</span>` : ''}</span>`;
+  }
+  if (st.bank === 'UnionBank') {
+    return `<span class="inline-flex items-center gap-1.5 font-bold text-sm tracking-tight ${txt}">
+      <span class="font-extrabold">UB</span> <span class="font-medium ${sub}">${label}</span></span>`;
+  }
+  return `<span class="font-bold text-base tracking-tight ${txt}">${label}</span>`;
 };
 
 /* ---------- Shared class vocabulary ---------- */
@@ -84,10 +166,41 @@ const C = {
   h1: 'text-[22px] md:text-[24px] leading-tight font-semibold text-ink tracking-[-0.015em] text-balance'
 };
 
-/* ---------- State ---------- */
+/* ---------- State & Local-Only Card Vault ---------- */
+const DEFAULT_CARDS = {
+  1: { style: 'gcash', num: '5399640288104821', exp: '08/29', cvv: '418', holder: 'JUAN DELA CRUZ' },
+  2: { style: 'maya-black', num: '4532710499201104', exp: '11/28', cvv: '903', holder: 'JUAN DELA CRUZ' },
+  3: { style: 'gotyme', num: '4288190033417762', exp: '04/30', cvv: '625', holder: 'JUAN DELA CRUZ' },
+  4: { style: 'bdo-plat', num: '5412750019283390', exp: '06/29', cvv: '712', holder: 'JUAN DELA CRUZ' }
+};
+
+function ensureCardMeta(w, idx = 0) {
+  const def = DEFAULT_CARDS[w.id] || {
+    style: CARD_STYLES[idx % CARD_STYLES.length].id,
+    num: '453289102341' + String(1000 + (w.id * 317) % 8999),
+    exp: '09/29',
+    cvv: String(100 + (w.id * 73) % 899),
+    holder: 'JUAN DELA CRUZ'
+  };
+  const guessStyle = /gcash/i.test(w.n) ? 'gcash' : /maya/i.test(w.n) ? 'maya-black' : /gotyme/i.test(w.n) ? 'gotyme' : /bdo/i.test(w.n) ? 'bdo-gold' : /bpi/i.test(w.n) ? 'bpi-plat' : /eastwest/i.test(w.n) ? 'ew-gold' : /metrobank/i.test(w.n) ? 'mb-plat' : /rcbc/i.test(w.n) ? 'rcbc-plat' : /unionbank/i.test(w.n) ? 'ub-pearl' : /cimb/i.test(w.n) ? 'cimb' : /cash/i.test(w.n) ? 'cash' : def.style;
+  return {
+    ...w,
+    style: w.style || guessStyle,
+    num: w.num || def.num,
+    exp: w.exp || def.exp,
+    cvv: w.cvv || def.cvv,
+    holder: w.holder || def.holder
+  };
+}
+
 const seed = () => ({
-  view: 'login', wid: 0, fw: 0, modal: '', pr: null, raw: '', draft: {}, errors: {}, n: 20,
-  w: [{ id: 1, n: 'GCash', b: 1200 }, { id: 2, n: 'Maya', b: 2100 }, { id: 3, n: 'GoTyme', b: 800 }, { id: 4, n: 'Cash', b: 150 }],
+  view: 'login', wid: 0, fw: 0, editWid: 0, modal: '', pr: null, raw: '', draft: {}, errors: {}, revealed: {}, copiedId: 0, n: 20,
+  w: [
+    ensureCardMeta({ id: 1, n: 'GCash', b: 1200, style: 'gcash' }, 0),
+    ensureCardMeta({ id: 2, n: 'Maya', b: 2100, style: 'maya-black' }, 1),
+    ensureCardMeta({ id: 3, n: 'GoTyme', b: 800, style: 'gotyme' }, 2),
+    ensureCardMeta({ id: 4, n: 'Cash', b: 150, style: 'cash' }, 3)
+  ],
   t: [
     { id: 1, d: '09-30', s: 'Jollibee', c: 'Food', w: 1, a: -189 },
     { id: 2, d: '09-30', s: 'Salary', c: 'Income', w: 2, a: 12000 },
@@ -97,7 +210,13 @@ const seed = () => ({
   b: [{ id: 1, n: 'Wi-Fi', a: 1299, d: 'Oct 5' }, { id: 2, n: 'Spotify', a: 200, d: 'Oct 9' }]
 });
 let S = seed();
-try { const saved = JSON.parse(localStorage.getItem('onewallet')); if (saved) S = { ...S, ...saved }; } catch (e) {}
+try {
+  const saved = JSON.parse(localStorage.getItem('onewallet'));
+  if (saved) {
+    S = { ...S, ...saved, revealed: {}, copiedId: 0 };
+    if (Array.isArray(S.w)) S.w = S.w.map((w, i) => ensureCardMeta(w, i));
+  }
+} catch (e) {}
 
 const walletName = id => esc(S.w.find(x => x.id == id)?.n ?? 'Deleted wallet');
 const total = () => S.w.reduce((s, w) => s + w.b, 0);
@@ -106,24 +225,67 @@ const daysLeft = () => Math.max(1, Math.round((new Date(PAYDAY) - new Date(TODAY
 const free = () => Math.max(0, total() - reserved());
 const perDay = () => free() / daysLeft();
 
-/* ---------- Navigation ---------- */
+/* ---------- Navigation & Privacy Controls ---------- */
 function go(v) {
+  S.revealed = {}; // Auto-mask all private card details when navigating
   if (location.hash === '#' + v) { S.view = v; S.wid = 0; S.pr = null; R(); }
   else location.hash = v;
 }
 function signIn() { location.replace('#today'); }          // one-way door: Back never returns to sign-in
-function signOut() { S.modal = ''; location.replace('#login'); }
-function openModal(m) { S.modal = m; S.draft = {}; S.errors = {}; R(); }
-function closeModal() { S.modal = ''; S.draft = {}; S.errors = {}; R(); }
+function signOut() { S.modal = ''; S.revealed = {}; location.replace('#login'); }
+function openModal(m, wid = 0) {
+  S.modal = m; S.editWid = wid; S.draft = {}; S.errors = {};
+  if (m === 'wallet' && wid) {
+    const w = S.w.find(x => x.id == wid);
+    if (w) S.draft = { wnm: w.n, wb: String(w.b), wstyle: w.style, wnum: w.num, wexp: w.exp, wcvv: w.cvv, wholder: w.holder };
+  } else if (m === 'wallet') {
+    S.draft = { wstyle: 'bdo-gold', wexp: '08/29', wholder: 'JUAN DELA CRUZ' };
+  }
+  R();
+}
+function closeModal() { S.modal = ''; S.editWid = 0; S.draft = {}; S.errors = {}; R(); }
 let keepWallet = false;
 function openWallet(id) { S.wid = id; if (S.view !== 'wallets') { keepWallet = true; go('wallets'); } else R(); }
+
+function toggleReveal(id) {
+  S.revealed[id] = !S.revealed[id];
+  R();
+}
+function maskAllCards() {
+  S.revealed = {};
+  R();
+}
+function copyCardNum(id) {
+  const w = S.w.find(x => x.id == id);
+  if (!w) return;
+  try { navigator.clipboard?.writeText(cleanDigits(w.num)); } catch (e) {}
+  S.copiedId = id;
+  R();
+  setTimeout(() => { if (S.copiedId === id) { S.copiedId = 0; R(); } }, 1800);
+}
+function pickCardStyle(styleId) {
+  const st = getCardStyle(styleId);
+  const curName = document.getElementById('wnm')?.value ?? S.draft.wnm ?? '';
+  const isPresetName = !curName || CARD_STYLES.some(x => x.bank.toLowerCase() === curName.toLowerCase() || `${x.bank} ${x.tier}`.toLowerCase() === curName.toLowerCase());
+  S.draft = {
+    ...S.draft,
+    wnm: isPresetName ? `${st.bank}${st.tier && !/Mastercard|Debit|Passbook/i.test(st.tier) ? ' ' + st.tier : ''}` : curName,
+    wb: document.getElementById('wb')?.value ?? S.draft.wb ?? '',
+    wnum: document.getElementById('wnum')?.value ?? S.draft.wnum ?? '',
+    wexp: document.getElementById('wexp')?.value ?? S.draft.wexp ?? '08/29',
+    wcvv: document.getElementById('wcvv')?.value ?? S.draft.wcvv ?? '',
+    wholder: document.getElementById('wholder')?.value ?? S.draft.wholder ?? 'JUAN DELA CRUZ',
+    wstyle: styleId
+  };
+  R();
+}
 
 /* ---------- Mutations ---------- */
 function addTx(w, a, s, c) { S.t.unshift({ id: ++S.n, d: TODAY.slice(5), s, c, w: +w, a }); const wl = S.w.find(z => z.id == w); if (wl) wl.b += a; }
 function delTx(id) { const t = S.t.find(x => x.id == id); if (!t) return; const wl = S.w.find(z => z.id == t.w); if (wl) wl.b -= t.a; S.t = S.t.filter(x => x.id != id); R(); }
 function delBill(id) { S.b = S.b.filter(x => x.id != id); R(); }
 
-function fail(errors, fields) { S.errors = errors; S.draft = Object.fromEntries(fields.map(f => [f, val(f)])); R(); }
+function fail(errors, fields) { S.errors = errors; S.draft = { ...S.draft, ...Object.fromEntries(fields.map(f => [f, val(f)])) }; R(); }
 
 function saveTx() {
   const a = parseFloat(val('am'));
@@ -133,11 +295,22 @@ function saveTx() {
 }
 function saveWallet() {
   const n = val('wnm'), b = val('wb') === '' ? 0 : parseFloat(val('wb'));
+  const style = S.draft.wstyle || 'bdo-gold';
+  const rawDigits = cleanDigits(val('wnum'));
+  const num = rawDigits.length >= 4 ? rawDigits.padStart(16, '453289102341') : ('453289102341' + String(1000 + Math.floor(Math.random() * 8999)));
+  const exp = val('wexp') || '08/29';
+  const cvv = (val('wcvv').replace(/\D/g, '').slice(0, 4)) || '418';
+  const holder = (val('wholder') || 'JUAN DELA CRUZ').toUpperCase();
   const e = {};
-  if (!n) e.wnm = 'Give this wallet a name.';
+  if (!n) e.wnm = 'Give this wallet or card a name.';
   if (isNaN(b)) e.wb = 'Enter a number, or leave it blank for ₱0.';
-  if (Object.keys(e).length) return fail(e, ['wnm', 'wb']);
-  S.w.push({ id: ++S.n, n, b });
+  if (Object.keys(e).length) return fail(e, ['wnm', 'wb', 'wnum', 'wexp', 'wcvv', 'wholder']);
+  if (S.editWid) {
+    const existing = S.w.find(x => x.id == S.editWid);
+    if (existing) Object.assign(existing, { n, b, style, num, exp, cvv, holder });
+  } else {
+    S.w.push({ id: ++S.n, n, b, style, num, exp, cvv, holder });
+  }
   closeModal();
 }
 function saveBill() {
@@ -191,6 +364,52 @@ const field = (id, label, input, hint = '') => {
 const inputAttrs = id => `id="${id}" name="${id}" class="${C.input}" ${S.errors[id] ? `aria-invalid="true" aria-describedby="${id}-err"` : ''}`;
 const draft = (id, fallback = '') => esc(S.draft[id] ?? fallback);
 const walletOptions = sel => S.w.map(w => `<option value="${w.id}" ${w.id == sel ? 'selected' : ''}>${esc(w.n)}</option>`).join('');
+
+/* Tactile Bank & E-Wallet Card Face Renderer */
+function renderCardFace(w, { revealed = false, mini = false } = {}) {
+  const st = getCardStyle(w.style);
+  const fg = st.light ? 'text-ink' : 'text-white';
+  const sub = st.light ? 'text-ink-2' : 'text-white/85';
+  const silverChip = /plat|visa|gotyme|maya|ub|cimb|gcash/i.test(st.id);
+
+  if (mini) {
+    return `<div data-ui class="relative overflow-hidden rounded-ctl p-3 select-none" style="background-color:${st.bg}">
+      ${motifSvg(st)}
+      <div class="relative flex items-center justify-between mb-3">
+        ${bankBrandHtml(st)}
+        <span class="text-xs font-medium ${sub}">${esc(st.tier)}</span>
+      </div>
+      <div class="relative flex items-center justify-between">
+        <span class="inline-flex items-center gap-1.5">${emvChipSvg(silverChip)}${nfcSvg(st.light)}</span>
+        ${netBadgeSvg(st.net, st.light)}
+      </div>
+    </div>`;
+  }
+
+  return `<div data-ui class="relative overflow-hidden px-5 py-4 select-none" style="background-color:${st.bg}">
+    ${motifSvg(st)}
+    <div class="relative flex items-center justify-between mb-3">
+      ${bankBrandHtml(st, w.n)}
+      <span class="text-[13px] font-medium ${sub}">${esc(st.tier)}</span>
+    </div>
+    <div class="relative flex items-center justify-between mb-3">
+      <span class="inline-flex items-center gap-2">${emvChipSvg(silverChip)}${nfcSvg(st.light)}</span>
+      <span class="text-[13px] font-medium ${sub}">${revealed ? 'Unlocked · Local vault' : 'Masked · Device only'}</span>
+    </div>
+    <div class="relative flex items-baseline justify-between gap-2 mb-2.5">
+      <p class="tnum text-lg font-semibold tracking-[0.04em] ${fg}">${formatCardNum(w.num, revealed)}</p>
+      ${revealed ? `<button type="button" class="text-[13px] font-semibold underline cursor-pointer ${fg}" onclick="event.stopPropagation();copyCardNum(${w.id})">${S.copiedId === w.id ? 'Copied' : 'Copy'}</button>` : ''}
+    </div>
+    <div class="relative flex items-center justify-between pt-2.5 border-t ${st.light ? 'border-ink/15' : 'border-white/15'} text-[13px] ${sub}">
+      <div class="flex items-center gap-4 tnum">
+        <span>Exp <strong class="font-semibold ${fg}">${revealed ? esc(w.exp || '08/29') : '••/••'}</strong></span>
+        <span>CVV <strong class="font-semibold ${fg}">${revealed ? esc(w.cvv || '418') : '•••'}</strong></span>
+        <span class="hidden sm:inline truncate max-w-[150px]">${revealed ? esc(w.holder || 'JUAN DELA CRUZ') : 'Cardholder hidden'}</span>
+      </div>
+      ${netBadgeSvg(st.net, st.light)}
+    </div>
+  </div>`;
+}
 
 function txRow(t, deletable) {
   return `<li class="flex items-center gap-3 py-3 border-b border-line/60 last:border-b-0">
@@ -247,10 +466,40 @@ const M = {
     ${field('nt', 'Merchant or note', `<input ${inputAttrs('nt')} placeholder="e.g. Jollibee" value="${draft('nt')}">`, 'Optional')}`,
     `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveTx()">Save entry</button>`),
 
-  wallet: () => dialogShell('Add wallet', `
-    ${field('wnm', 'Name', `<input ${inputAttrs('wnm')} placeholder="e.g. MariBank" value="${draft('wnm')}" data-autofocus>`)}
-    ${field('wb', 'Current balance', `<input ${inputAttrs('wb')} type="number" inputmode="decimal" step="0.01" placeholder="0.00" value="${draft('wb')}">`, 'What the wallet’s app shows right now.')}`,
-    `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveWallet()">Add wallet</button>`),
+  wallet: () => {
+    const selStyle = S.draft.wstyle || 'bdo-gold';
+    const groups = ['Credit & Bank Cards', 'Digital Banks & E-Wallets'];
+    return dialogShell(S.editWid ? 'Card design & private info' : 'Add wallet or card', `
+      <div class="mb-4">
+        <p class="text-sm font-medium text-ink mb-1">Choose card design</p>
+        <p class="${C.meta} mb-2.5">Select a bank or digital wallet style. Card details stay in this browser’s local storage and are never sent to any database.</p>
+        <div class="max-h-[230px] overflow-y-auto pr-1 space-y-3 border border-line rounded-ctl p-2.5 bg-paper">
+          ${groups.map(g => `
+            <div>
+              <p class="text-xs font-semibold text-ink-2 mb-2">${g}</p>
+              <div class="grid grid-cols-2 gap-2">
+                ${CARD_STYLES.filter(s => s.group === g).map(st => `
+                  <button type="button" onclick="pickCardStyle('${st.id}')" class="text-left rounded-ctl p-0.5 cursor-pointer ${selStyle === st.id ? 'ring-2 ring-ink' : 'opacity-90 hover:opacity-100'}" aria-pressed="${selStyle === st.id}">
+                    ${renderCardFace({ style: st.id, n: st.bank }, { mini: true })}
+                  </button>`).join('')}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-x-3">
+        ${field('wnm', 'Wallet or card name', `<input ${inputAttrs('wnm')} placeholder="e.g. BDO Platinum" value="${draft('wnm')}" data-autofocus>`)}
+        ${field('wb', 'Current balance', `<input ${inputAttrs('wb')} type="number" inputmode="decimal" step="0.01" placeholder="0.00" value="${draft('wb')}">`)}
+      </div>
+      <div class="grid grid-cols-2 gap-x-3">
+        ${field('wnum', 'Card / account number', `<input ${inputAttrs('wnum')} inputmode="numeric" maxlength="19" placeholder="4532 8910 2341 4821" value="${draft('wnum')}">`, 'Masked on screen by default')}
+        ${field('wholder', 'Cardholder name', `<input ${inputAttrs('wholder')} placeholder="JUAN DELA CRUZ" value="${draft('wholder', 'JUAN DELA CRUZ')}">`)}
+      </div>
+      <div class="grid grid-cols-2 gap-x-3">
+        ${field('wexp', 'Expiry (MM/YY)', `<input ${inputAttrs('wexp')} maxlength="5" placeholder="08/29" value="${draft('wexp', '08/29')}">`)}
+        ${field('wcvv', 'Security code (CVV)', `<input ${inputAttrs('wcvv')} inputmode="numeric" maxlength="4" placeholder="418" value="${draft('wcvv')}">`, 'Stored locally only')}
+      </div>`,
+      `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveWallet()">Save</button>`);
+  },
 
   bill: () => dialogShell('Set aside a bill', `
     ${field('bn', 'Bill', `<input ${inputAttrs('bn')} placeholder="e.g. Converge" value="${draft('bn')}" data-autofocus>`)}
@@ -378,34 +627,85 @@ const V = {
     const w = S.w.find(x => x.id == S.wid);
     if (w) {
       const list = S.t.filter(t => t.w == w.id);
+      const rev = !!S.revealed[w.id];
       return `
-        <button type="button" class="${C.link} inline-flex items-center gap-1 mb-3 -ml-1" onclick="S.wid=0;R()">${icon(I.back, 'w-4 h-4', 16)}All wallets</button>
-        ${pageHead(esc(w.n), 'Wallet account', `<button type="button" class="${C.btn2}" onclick="openModal('reconcile')">Correct balance</button>`)}
-        <section class="${C.card} p-5 mb-5">
-          <p class="text-sm font-medium text-ink-2">Recorded balance</p>
-          <p class="tnum text-[36px] leading-tight font-semibold tracking-[-0.02em] my-1">${peso(w.b)}</p>
-          <p class="${C.meta}">${list.length} entr${list.length === 1 ? 'y' : 'ies'} · If this differs from the ${esc(w.n)} app, use Correct balance.</p>
-        </section>
+        <button type="button" class="${C.link} inline-flex items-center gap-1 mb-3 -ml-1" onclick="S.wid=0;S.revealed={};R()">${icon(I.back, 'w-4 h-4', 16)}All wallets & cards</button>
+        ${pageHead(esc(w.n), 'Wallet & local card vault', `
+          <button type="button" class="${C.btn2}" onclick="openModal('wallet', ${w.id})">${icon(I.card, 'w-4 h-4', 16)}Card style & info</button>
+          <button type="button" class="${C.btn}" onclick="openModal('reconcile')">Correct balance</button>`)}
+
+        <div class="grid gap-4 lg:grid-cols-[1.08fr_1fr] items-stretch mb-5">
+          <section class="${C.card} overflow-hidden flex flex-col justify-between">
+            ${renderCardFace(w, { revealed: rev })}
+            <div class="px-5 py-3 flex flex-wrap items-center justify-between gap-2 bg-card">
+              <span class="text-xs text-mute">${rev ? 'Visible on your screen only · Never sent to any server' : 'Card numbers & CVV are hidden from view'}</span>
+              <button type="button" class="${C.link} inline-flex items-center gap-1.5 text-xs font-semibold" onclick="toggleReveal(${w.id})">
+                ${icon(rev ? I.eyeOff : I.eye, 'w-4 h-4', 16)}${rev ? 'Hide card info' : 'Reveal card info'}
+              </button>
+            </div>
+          </section>
+
+          <section class="${C.card} p-5 flex flex-col justify-between">
+            <div>
+              <p class="text-sm font-medium text-ink-2">Recorded balance</p>
+              <p class="tnum text-[36px] leading-tight font-semibold tracking-[-0.02em] my-1">${peso(w.b)}</p>
+              <p class="${C.meta}">${list.length} entr${list.length === 1 ? 'y' : 'ies'} · If this differs from your ${esc(w.n)} app, choose Correct balance.</p>
+            </div>
+            <div class="pt-3 mt-3 border-t border-line flex items-center justify-between text-xs text-mute">
+              <span>Privacy status</span>
+              <span class="font-medium text-ink">Device-only local storage</span>
+            </div>
+          </section>
+        </div>
+
         <section class="${C.card} p-5">
           ${cardHead('Entries')}
           ${ledgerList(list, { deletable: true, empty: `No entries for ${esc(w.n)} yet.` })}
         </section>`;
     }
+
     const tot = total();
+    const anyRevealed = Object.values(S.revealed).some(Boolean);
     return `
-      ${pageHead('Wallets', `${S.w.length} wallets · ${peso(tot)} total`, `<button type="button" class="${C.btn}" onclick="openModal('wallet')">${icon(I.plus, 'w-4 h-4', 16)}Add wallet</button>`)}
-      <section class="${C.card}">
-        <ul class="divide-y divide-line">
-          ${S.w.map(w => {
-            const count = S.t.filter(t => t.w == w.id).length;
-            return `<li><button type="button" class="w-full flex items-center gap-4 px-5 py-3.5 text-left hover:bg-subtle/60 cursor-pointer" onclick="openWallet(${w.id})">
-              <span class="flex-1 min-w-0"><span class="block text-sm font-semibold text-ink">${esc(w.n)}</span><span class="block ${C.meta}">${count} entr${count === 1 ? 'y' : 'ies'} · ${tot > 0 ? Math.round(Math.max(0, w.b) / tot * 100) : 0}% of total</span></span>
-              <span class="tnum text-sm font-semibold text-ink">${peso(w.b)}</span>
-              <span class="text-mute">${icon(I.chevron, 'w-4 h-4', 16)}</span>
-            </button></li>`;
-          }).join('') || `<li class="p-8 text-center ${C.meta}">Add your first wallet to start.</li>`}
-        </ul>
-      </section>`;
+      ${pageHead('Wallets & Cards', `${S.w.length} accounts · ${peso(tot)} total · Private local card vault`, `
+        ${anyRevealed ? `<button type="button" class="${C.btn2}" onclick="maskAllCards()">${icon(I.eyeOff, 'w-4 h-4', 16)}Mask all</button>` : ''}
+        <button type="button" class="${C.btn}" onclick="openModal('wallet')">${icon(I.plus, 'w-4 h-4', 16)}Add wallet or card</button>`)}
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-line text-sm text-ink-2">
+        <span class="inline-flex items-center gap-2">${icon(I.lock, 'w-4 h-4', 16)}<span><strong class="font-semibold text-ink">Private to this device:</strong> Card numbers, expiry and CVV stay masked on screen and live only in this browser—never shared with other users or any database.</span></span>
+        <span class="tnum text-[13px] font-medium text-mute">${anyRevealed ? 'Card info unlocked on screen' : 'All cards masked'}</span>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2 items-stretch">
+        ${S.w.map(w => {
+          const count = S.t.filter(t => t.w == w.id).length;
+          const rev = !!S.revealed[w.id];
+          const share = tot > 0 ? Math.round(Math.max(0, w.b) / tot * 100) : 0;
+          return `<article class="${C.card} overflow-hidden flex flex-col justify-between">
+            ${renderCardFace(w, { revealed: rev })}
+            <div class="p-4 flex flex-col gap-3">
+              <div class="flex items-baseline justify-between">
+                <div>
+                  <span class="text-base font-semibold text-ink">${esc(w.n)}</span>
+                  <span class="text-[13px] text-mute ml-1.5">· ${count} entr${count === 1 ? 'y' : 'ies'} (${share}%)</span>
+                </div>
+                <span class="tnum text-lg font-semibold text-ink">${peso(w.b)}</span>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-line">
+                <div class="flex items-center gap-3">
+                  <button type="button" class="${C.link} inline-flex items-center gap-1 text-sm font-semibold" onclick="toggleReveal(${w.id})">
+                    ${icon(rev ? I.eyeOff : I.eye, 'w-4 h-4', 16)}${rev ? 'Hide info' : 'Check card info'}
+                  </button>
+                  <button type="button" class="${C.link} text-sm" onclick="openModal('wallet', ${w.id})">Card style</button>
+                </div>
+                <button type="button" class="${C.link} inline-flex items-center gap-1 text-sm font-semibold" onclick="openWallet(${w.id})">
+                  Open ledger${icon(I.chevron, 'w-4 h-4', 16)}
+                </button>
+              </div>
+            </div>
+          </article>`;
+        }).join('') || `<div class="${C.card} p-8 text-center ${C.meta} md:col-span-2">Add your first wallet or card to start.</div>`}
+      </div>`;
   },
 
   ledger: () => {
@@ -519,7 +819,7 @@ const V = {
         ${cardHead('Common questions')}
         <dl class="mt-2 space-y-3 text-sm">
           <div><dt class="font-semibold text-ink">Does it connect to my bank?</dt><dd class="text-ink-2">No. It only reads alert text you paste in.</dd></div>
-          <div><dt class="font-semibold text-ink">Is my data uploaded?</dt><dd class="text-ink-2">No. Everything stays in this browser’s local storage.</dd></div>
+          <div><dt class="font-semibold text-ink">Are my card numbers public or stored in a database?</dt><dd class="text-ink-2">Never. Card numbers, expiry dates and CVV codes are masked on screen by default and stored only in your browser’s local storage on this device.</dd></div>
           <div><dt class="font-semibold text-ink">A balance looks wrong.</dt><dd class="text-ink-2">Open the wallet and choose Correct balance. We add an entry for the difference so your history stays traceable.</dd></div>
         </dl>
       </section>
@@ -589,7 +889,7 @@ function R() {
 
     ${S.modal ? `
       <div class="fixed inset-0 z-50 bg-ink/40 flex items-end sm:items-center justify-center sm:p-4" onclick="if(event.target===this)closeModal()">
-        <div role="dialog" aria-modal="true" aria-labelledby="modal-title" class="dialog-in w-full sm:w-[440px] max-h-[90dvh] overflow-y-auto bg-card border border-line rounded-t-card sm:rounded-card p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <div role="dialog" aria-modal="true" aria-labelledby="modal-title" class="dialog-in w-full sm:w-[500px] max-h-[90dvh] overflow-y-auto bg-card border border-line rounded-t-card sm:rounded-card p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           ${M[S.modal]()}
         </div>
       </div>` : ''}`;
@@ -620,6 +920,7 @@ function route() {
   if (!V[v]) v = 'login';
   const changed = S.view !== v;
   S.view = v; S.modal = ''; S.pr = changed ? null : S.pr;
+  if (changed) S.revealed = {}; // Auto-mask card details when changing screens
   if (changed && !keepWallet) S.wid = 0;
   keepWallet = false;
   R();
