@@ -18,17 +18,18 @@ One Wallet consolidates fragmented balances into a unified dashboard, calculates
 
 ## Key Features
 
-- **Multi-Wallet Overview**: Track real-time balances across GCash, Maya, GoTyme, and Cash in one place.
-- **Daily Runway Calculator**: Dynamic spendable daily budget calculated from net balance minus reserved bills divided by days until payday.
-- **Payment Alert Parser**: Extracts merchant, transaction amount, direction, and category from copied SMS/app payment alerts using pattern recognition.
+- **Multi-Account Registration, Switching & Cloud Sync**: Create separate encrypted accounts with custom starting presets (`4 PH Wallets`, `Sample Demo Data`, or `Blank Workspace`), switch accounts seamlessly, and sync across devices via **Supabase Auth & PostgreSQL**.
+- **Zero-Knowledge Encrypted Card Vault (`AES-256-GCM`)**: Store 16 Philippine credit/debit card and digital wallet designs (`BDO`, `BPI`, `EastWest`, `Metrobank`, `RCBC`, `UnionBank`, `Maya`, `GoTyme`, `CIMB`, `GCash`, `Cash`). Card numbers, expiry dates, and CVV codes are encrypted in-browser via Web Crypto `PBKDF2-SHA256` + `AES-256-GCM` (`src/vault-cloud.js`) before touching `localStorage` or Supabase PostgreSQL.
+- **Real-Time Payday Cycle & Daily Runway Calculator**: Dynamic spendable daily budget calculated from real calendar dates and configurable payday schedules (`15th & 30th Bi-monthly`, `Every 15th`, `Every 30th`, or `Custom target date`).
+- **Quarantined Bills & One-Click Bill Settlement**: Set aside upcoming bills from your safe-to-spend balance, and click **Pay bill** to deduct from a chosen wallet, record a `Bills` ledger entry, and clear the quarantined bill in one step.
+- **Payment Alert Parser & Full Ledger CRUD**: Extracts merchant, transaction amount, direction, and category from copied SMS/app alerts, with full edit and delete support across wallets, ledger entries, and bills.
 - **Balance Reconciliation**: One-click balance adjustments that maintain audit history when physical app balances drift.
-- **Spending Insights**: Visual categorical spending breakdowns and income vs. expense progress bars.
-- **Offline Persistence**: Client-side `localStorage` data persistence with zero external server dependencies.
 
 ## Tech Stack
 
-- **Prototype**: HTML5, Vanilla JavaScript, Tailwind CSS v4 CLI
-- **Target Application**: ASP.NET Core Blazor, C# (.NET 8 / 10), Tailwind CSS
+- **Frontend**: HTML5, Modular Vanilla ES JavaScript (`src/vault-cloud.js`), Tailwind CSS v4 CLI
+- **Cryptography**: Web Crypto API (`PBKDF2-SHA256` key derivation + `AES-256-GCM` authenticated encryption)
+- **Cloud Backend & Database**: Supabase Auth + PostgreSQL with strict Row-Level Security (`supabase/schema.sql`)
 - **Deployment**: GitHub Pages via GitHub Actions
 
 ## Getting Started

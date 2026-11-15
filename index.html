@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="./dist/output.css?v=20261115b" rel="stylesheet">
+  <link href="./dist/output.css?v=20261115c" rel="stylesheet">
   <style>
     /* Critical fallback tokens & shell rules so cached/delayed CSS never breaks layout or icon sizing */
     :root {
@@ -32,32 +32,43 @@
 </head>
 <body class="bg-paper text-ink font-sans antialiased">
 <div id="app"></div>
+<script src="./src/vault-cloud.js"></script>
 <script>
-/* ---------- Constants & formatting ---------- */
-const TODAY = '2026-09-30';
-const PAYDAY = '2026-10-15';
+/* ---------- Dynamic Dates & Formatting ---------- */
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const CATEGORIES = ['Food', 'Transport', 'Load', 'Bills', 'Income', 'Others'];
 
 const pad2 = n => (n < 10 ? '0' : '') + n;
-const peso = n => '₱' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const getToday = () => OWVault.todayISO();
+const getPayday = () => OWVault.computeNextPayday(getToday(), S.paydayMode || 'bimonthly', S.customPayday || '');
+
+const peso = n => '₱' + Math.abs(Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const signed = n => (n < 0 ? '− ' : '+ ') + peso(n);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const val = id => (document.getElementById(id)?.value ?? '').trim();
-const shortDate = md => { const [m, d] = md.split('-').map(Number); return `${MONTHS[m - 1]} ${d}`; };
+const shortDate = md => {
+  if (!md) return '';
+  const parts = String(md).split('-');
+  const m = Number(parts.at(-2)), d = Number(parts.at(-1));
+  if (!m || !d || !MONTHS[m - 1]) return String(md);
+  return `${MONTHS[m - 1]} ${d}`;
+};
 const dayLabel = md => {
-  const today = TODAY.slice(5);
-  const y = new Date(TODAY); y.setDate(y.getDate() - 1);
-  const yesterday = pad2(y.getMonth() + 1) + '-' + pad2(y.getDate());
-  if (md === today) return `Today · ${shortDate(md)}`;
-  if (md === yesterday) return `Yesterday · ${shortDate(md)}`;
-  return shortDate(md);
+  const td = getToday().slice(5);
+  const yd = OWVault.shiftDaysISO(getToday(), -1).slice(5);
+  const norm = String(md || '').slice(-5);
+  if (norm === td) return `Today · ${shortDate(norm)}`;
+  if (norm === yd) return `Yesterday · ${shortDate(norm)}`;
+  return shortDate(norm);
 };
 const cleanDigits = s => String(s ?? '').replace(/\D/g, '').slice(0, 16);
-const formatCardNum = (num, show) => {
-  const d = cleanDigits(num || '4532891023414821').padEnd(16, '0');
-  if (show) return `${d.slice(0, 4)} ${d.slice(4, 8)} ${d.slice(8, 12)} ${d.slice(12, 16)}`;
-  return `•••• •••• •••• ${d.slice(12, 16)}`;
+const formatCardNum = (w, show) => {
+  if (show && w.num) {
+    const d = cleanDigits(w.num).padEnd(16, '0');
+    return `${d.slice(0, 4)} ${d.slice(4, 8)} ${d.slice(8, 12)} ${d.slice(12, 16)}`;
+  }
+  const l4 = w.last4 || cleanDigits(w.num || '4821').slice(-4) || '4821';
+  return `•••• •••• •••• ${l4}`;
 };
 
 /* ---------- Icons (one 1.5px line family with explicit HTML width/height fallback) ---------- */
@@ -72,15 +83,18 @@ const I = {
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
   trash: '<path d="M5 7h14M10 11v6M14 11v6M7 7l1 13h8l1-13M9 7V4h6v3"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   chevron: '<path d="m9 5 7 7-7 7"/>',
   eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
   eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.1A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a16 16 0 0 1-3.2 4.3"/><path d="M6.6 6.6C4 8.3 2 12 2 12s3.6 7 10 7a10.6 10.6 0 0 0 5.4-1.4"/>',
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
-  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
-  card: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>'
+  card: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+  check: '<path d="m5 12 5 5L20 7"/>'
 };
 
-/* ---------- Philippine Bank & Digital Wallet Card Styles (inspired by reference gallery) ---------- */
+/* ---------- Philippine Bank & Digital Wallet Card Styles ---------- */
 const CARD_STYLES = [
   { id: 'bdo-gold', group: 'Credit & Bank Cards', bank: 'BDO', tier: 'Gold', net: 'mc', bg: '#5C4922', accent: '#C8A862', light: false, motif: 'grid' },
   { id: 'bdo-plat', group: 'Credit & Bank Cards', bank: 'BDO', tier: 'Platinum', net: 'mc', bg: '#1E293B', accent: '#64748B', light: false, motif: 'grid' },
@@ -134,7 +148,7 @@ const bankBrandHtml = (st, customName) => {
   const label = esc(customName || st.bank);
   if (st.bank === 'eastwest') {
     return `<span class="inline-flex items-center gap-1.5 font-semibold text-base tracking-tight ${txt}">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><polygon points="8,1 15,8 8,15 1,8" fill="#DB2777"/><circle cx="8" cy="8" r="2.2" fill="#FBBF24"/></svg>${label}</span>`;
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><polygon points="8,1 15,8 8,15 1,8" fill="#C82347"/><circle cx="8" cy="8" r="2.2" fill="#D4B475"/></svg>${label}</span>`;
   }
   if (st.bank === 'BPI') {
     return `<span class="inline-flex items-center gap-1.5 font-bold text-base tracking-tight ${txt}">
@@ -166,84 +180,396 @@ const C = {
   h1: 'text-[22px] md:text-[24px] leading-tight font-semibold text-ink tracking-[-0.015em] text-balance'
 };
 
-/* ---------- State & Local-Only Card Vault ---------- */
-const DEFAULT_CARDS = {
-  1: { style: 'gcash', num: '5399640288104821', exp: '08/29', cvv: '418', holder: 'JUAN DELA CRUZ' },
-  2: { style: 'maya-black', num: '4532710499201104', exp: '11/28', cvv: '903', holder: 'JUAN DELA CRUZ' },
-  3: { style: 'gotyme', num: '4288190033417762', exp: '04/30', cvv: '625', holder: 'JUAN DELA CRUZ' },
-  4: { style: 'bdo-plat', num: '5412750019283390', exp: '06/29', cvv: '712', holder: 'JUAN DELA CRUZ' }
+/* ---------- Active Session & Multi-Account State ---------- */
+let sessionVaultKey = null; // In-memory AES-GCM-256 CryptoKey (never written to disk)
+
+const defaultState = () => {
+  const td = OWVault.todayISO();
+  const yd = OWVault.shiftDaysISO(td, -1);
+  return {
+    view: 'login',
+    authTab: 'signin', // 'signin' | 'signup'
+    accountId: 'demo',
+    fullName: 'Juan Dela Cruz',
+    email: 'demo@onewallet.ph',
+    paydayMode: 'bimonthly',
+    customPayday: '',
+    salt: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    sbToken: '',
+    sbUserId: '',
+    cloudStatus: '',
+    wid: 0, fw: 0, editWid: 0, editTxId: 0, editBillId: 0, payBillId: 0,
+    modal: '', pr: null, raw: '', draft: {}, errors: {}, revealed: {}, copiedId: 0, n: 20,
+    w: [
+      { id: 1, n: 'GCash', b: 1200, style: 'gcash', last4: '4821', encrypted_card_vault: 'aes256gcm:demo:encrypted', num: '5399640288104821', exp: '08/29', cvv: '418', holder: 'JUAN DELA CRUZ' },
+      { id: 2, n: 'Maya', b: 2100, style: 'maya-black', last4: '1104', encrypted_card_vault: 'aes256gcm:demo:encrypted', num: '4532710499201104', exp: '11/28', cvv: '903', holder: 'JUAN DELA CRUZ' },
+      { id: 3, n: 'GoTyme', b: 800, style: 'gotyme', last4: '7762', encrypted_card_vault: 'aes256gcm:demo:encrypted', num: '4288190033417762', exp: '04/30', cvv: '625', holder: 'JUAN DELA CRUZ' },
+      { id: 4, n: 'Cash', b: 150, style: 'cash', last4: '3390', encrypted_card_vault: 'aes256gcm:demo:encrypted', num: '5412750019283390', exp: '06/29', cvv: '712', holder: 'JUAN DELA CRUZ' }
+    ],
+    t: [
+      { id: 1, d: td.slice(5), s: 'Jollibee', c: 'Food', w: 1, a: -189 },
+      { id: 2, d: td.slice(5), s: 'Salary', c: 'Income', w: 2, a: 12000 },
+      { id: 3, d: yd.slice(5), s: 'Load', c: 'Load', w: 1, a: -50 },
+      { id: 4, d: yd.slice(5), s: 'Grab', c: 'Transport', w: 1, a: -140 }
+    ],
+    b: [
+      { id: 1, n: 'Wi-Fi', a: 1299, d: shortDate(OWVault.shiftDaysISO(td, 5).slice(5)) },
+      { id: 2, n: 'Spotify', a: 200, d: shortDate(OWVault.shiftDaysISO(td, 9).slice(5)) }
+    ]
+  };
 };
 
-function ensureCardMeta(w, idx = 0) {
-  const def = DEFAULT_CARDS[w.id] || {
-    style: CARD_STYLES[idx % CARD_STYLES.length].id,
-    num: '453289102341' + String(1000 + (w.id * 317) % 8999),
-    exp: '09/29',
-    cvv: String(100 + (w.id * 73) % 899),
-    holder: 'JUAN DELA CRUZ'
-  };
-  const guessStyle = /gcash/i.test(w.n) ? 'gcash' : /maya/i.test(w.n) ? 'maya-black' : /gotyme/i.test(w.n) ? 'gotyme' : /bdo/i.test(w.n) ? 'bdo-gold' : /bpi/i.test(w.n) ? 'bpi-plat' : /eastwest/i.test(w.n) ? 'ew-gold' : /metrobank/i.test(w.n) ? 'mb-plat' : /rcbc/i.test(w.n) ? 'rcbc-plat' : /unionbank/i.test(w.n) ? 'ub-pearl' : /cimb/i.test(w.n) ? 'cimb' : /cash/i.test(w.n) ? 'cash' : def.style;
-  return {
-    ...w,
-    style: w.style || guessStyle,
-    num: w.num || def.num,
-    exp: w.exp || def.exp,
-    cvv: w.cvv || def.cvv,
-    holder: w.holder || def.holder
-  };
+let S = defaultState();
+
+/* Persist active account workspace (stripping plaintext card secrets before storage!) */
+function persistActiveAccount() {
+  if (!S.accountId) return;
+  try {
+    const reg = OWVault.loadRegistry();
+    const existing = reg[S.accountId] || {};
+    const sanitizedWallets = S.w.map(w => ({
+      id: w.id,
+      n: w.n,
+      b: w.b,
+      style: w.style || 'gcash',
+      last4: w.last4 || cleanDigits(w.num || '4821').slice(-4) || '4821',
+      encrypted_card_vault: w.encrypted_card_vault || 'aes256gcm:local:vault'
+    }));
+    reg[S.accountId] = {
+      ...existing,
+      id: S.accountId,
+      fullName: S.fullName,
+      email: S.email,
+      paydayMode: S.paydayMode || 'bimonthly',
+      customPayday: S.customPayday || '',
+      salt: S.salt,
+      sbUserId: S.sbUserId || existing.sbUserId || '',
+      w: sanitizedWallets,
+      t: S.t,
+      b: S.b,
+      n: S.n
+    };
+    OWVault.saveRegistry(reg);
+    localStorage.setItem(OWVault.STORAGE_SESSION, JSON.stringify({ accountId: S.accountId }));
+    if (S.sbToken && S.sbUserId && OWVault.isSupabaseConfigured()) {
+      OWVault.syncAccountToSupabase(reg[S.accountId], S.sbToken);
+    }
+  } catch (e) {}
 }
 
-const seed = () => ({
-  view: 'login', wid: 0, fw: 0, editWid: 0, modal: '', pr: null, raw: '', draft: {}, errors: {}, revealed: {}, copiedId: 0, n: 20,
-  w: [
-    ensureCardMeta({ id: 1, n: 'GCash', b: 1200, style: 'gcash' }, 0),
-    ensureCardMeta({ id: 2, n: 'Maya', b: 2100, style: 'maya-black' }, 1),
-    ensureCardMeta({ id: 3, n: 'GoTyme', b: 800, style: 'gotyme' }, 2),
-    ensureCardMeta({ id: 4, n: 'Cash', b: 150, style: 'cash' }, 3)
-  ],
-  t: [
-    { id: 1, d: '09-30', s: 'Jollibee', c: 'Food', w: 1, a: -189 },
-    { id: 2, d: '09-30', s: 'Salary', c: 'Income', w: 2, a: 12000 },
-    { id: 3, d: '09-29', s: 'Load', c: 'Load', w: 1, a: -50 },
-    { id: 4, d: '09-29', s: 'Grab', c: 'Transport', w: 1, a: -140 }
-  ],
-  b: [{ id: 1, n: 'Wi-Fi', a: 1299, d: 'Oct 5' }, { id: 2, n: 'Spotify', a: 200, d: 'Oct 9' }]
-});
-let S = seed();
-try {
-  const saved = JSON.parse(localStorage.getItem('onewallet'));
-  if (saved) {
-    S = { ...S, ...saved, revealed: {}, copiedId: 0 };
-    if (Array.isArray(S.w)) S.w = S.w.map((w, i) => ensureCardMeta(w, i));
-  }
-} catch (e) {}
+/* Initialize demo account & restore active session on boot */
+async function bootSession() {
+  try {
+    const reg = OWVault.loadRegistry();
+    if (!reg.demo) {
+      const salt = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+      const pwdHash = await OWVault.hashPassword('demo1234', salt);
+      const demoKey = await OWVault.deriveVaultKey('demo1234', salt);
+      const def = defaultState();
+      const encWallets = [];
+      for (const w of def.w) {
+        encWallets.push(await OWVault.buildEncryptedWallet(w, demoKey));
+      }
+      reg.demo = {
+        id: 'demo',
+        isDemo: true,
+        fullName: 'Juan Dela Cruz',
+        email: 'demo@onewallet.ph',
+        paydayMode: 'bimonthly',
+        customPayday: '',
+        salt,
+        pwdHash,
+        w: encWallets,
+        t: def.t,
+        b: def.b,
+        n: 20
+      };
+      OWVault.saveRegistry(reg);
+    }
+
+    const active = JSON.parse(localStorage.getItem(OWVault.STORAGE_SESSION) || 'null');
+    const targetId = (active && reg[active.accountId]) ? active.accountId : 'demo';
+    const acc = reg[targetId];
+    if (acc) {
+      if (targetId === 'demo') {
+        sessionVaultKey = await OWVault.deriveVaultKey('demo1234', acc.salt);
+      }
+      const hydratedW = await OWVault.hydrateWalletsInMemory(acc.w, sessionVaultKey, acc.fullName);
+      S = {
+        ...S,
+        accountId: acc.id,
+        fullName: acc.fullName,
+        email: acc.email,
+        paydayMode: acc.paydayMode || 'bimonthly',
+        customPayday: acc.customPayday || '',
+        salt: acc.salt,
+        w: hydratedW,
+        t: acc.t || [],
+        b: acc.b || [],
+        n: acc.n || 20
+      };
+      R();
+    }
+  } catch (e) {}
+}
 
 const walletName = id => esc(S.w.find(x => x.id == id)?.n ?? 'Deleted wallet');
-const total = () => S.w.reduce((s, w) => s + w.b, 0);
-const reserved = () => S.b.reduce((s, b) => s + b.a, 0);
-const daysLeft = () => Math.max(1, Math.round((new Date(PAYDAY) - new Date(TODAY)) / 864e5));
+const total = () => S.w.reduce((s, w) => s + Number(w.b || 0), 0);
+const reserved = () => S.b.reduce((s, b) => s + Number(b.a || 0), 0);
+const daysLeft = () => {
+  const [y1, m1, d1] = getToday().split('-').map(Number);
+  const [y2, m2, d2] = getPayday().split('-').map(Number);
+  const diff = Math.round((new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1)) / 864e5);
+  return Math.max(1, diff);
+};
 const free = () => Math.max(0, total() - reserved());
 const perDay = () => free() / daysLeft();
 
-/* ---------- Navigation & Privacy Controls ---------- */
+/* ---------- Navigation & Account Actions ---------- */
 function go(v) {
-  S.revealed = {}; // Auto-mask all private card details when navigating
+  S.revealed = {};
   if (location.hash === '#' + v) { S.view = v; S.wid = 0; S.pr = null; R(); }
   else location.hash = v;
 }
-function signIn() { location.replace('#today'); }          // one-way door: Back never returns to sign-in
-function signOut() { S.modal = ''; S.revealed = {}; location.replace('#login'); }
-function openModal(m, wid = 0) {
-  S.modal = m; S.editWid = wid; S.draft = {}; S.errors = {};
-  if (m === 'wallet' && wid) {
-    const w = S.w.find(x => x.id == wid);
+
+async function handleSignIn() {
+  const email = val('login-email').toLowerCase();
+  const pwd = val('login-pwd');
+  if (!email || !pwd) return fail({ 'login-email': !email ? 'Enter your email.' : '', 'login-pwd': !pwd ? 'Enter your password.' : '' }, ['login-email', 'login-pwd']);
+
+  // 1. If Supabase Cloud is configured, try authenticating with Supabase Auth first
+  if (OWVault.isSupabaseConfigured()) {
+    try {
+      const authData = await OWVault.sbFetch('/auth/v1/token?grant_type=password', {
+        method: 'POST',
+        body: { email, password: pwd }
+      });
+      if (authData && authData.access_token && authData.user) {
+        const uid = authData.user.id;
+        const token = authData.access_token;
+        const cloudAcc = await OWVault.pullAccountFromSupabase(uid, token);
+        const salt = cloudAcc?.salt || OWVault.randomSaltHex(16);
+        sessionVaultKey = await OWVault.deriveVaultKey(pwd, salt);
+        const hydratedW = cloudAcc ? await OWVault.hydrateWalletsInMemory(cloudAcc.w, sessionVaultKey, cloudAcc.fullName) : [];
+        S = {
+          ...defaultState(),
+          view: 'today',
+          accountId: email,
+          fullName: cloudAcc?.fullName || authData.user.user_metadata?.full_name || email.split('@')[0],
+          email,
+          paydayMode: cloudAcc?.paydayMode || 'bimonthly',
+          customPayday: cloudAcc?.customPayday || '',
+          salt,
+          sbToken: token,
+          sbUserId: uid,
+          cloudStatus: 'Connected to Supabase Cloud',
+          w: hydratedW,
+          t: cloudAcc?.t || [],
+          b: cloudAcc?.b || [],
+          n: cloudAcc?.n || 20
+        };
+        persistActiveAccount();
+        location.replace('#today');
+        return;
+      }
+    } catch (cloudErr) {
+      // Fall through to local registry if account exists locally, otherwise surface error
+      const reg = OWVault.loadRegistry();
+      const localMatch = Object.values(reg).find(a => a.email.toLowerCase() === email);
+      if (!localMatch) {
+        return fail({ 'login-pwd': `Supabase Auth: ${cloudErr.message}` }, ['login-email', 'login-pwd']);
+      }
+    }
+  }
+
+  // 2. Local Multi-Account Registry Verification (PBKDF2-SHA256)
+  const reg = OWVault.loadRegistry();
+  const acc = Object.values(reg).find(a => a.email.toLowerCase() === email);
+  if (!acc) {
+    return fail({ 'login-email': 'No account found with this email. Switch to Create account to register.' }, ['login-email', 'login-pwd']);
+  }
+  const computedHash = await OWVault.hashPassword(pwd, acc.salt);
+  if (acc.pwdHash && computedHash !== acc.pwdHash) {
+    return fail({ 'login-pwd': 'Incorrect password for this account.' }, ['login-email', 'login-pwd']);
+  }
+  sessionVaultKey = await OWVault.deriveVaultKey(pwd, acc.salt);
+  const hydratedW = await OWVault.hydrateWalletsInMemory(acc.w, sessionVaultKey, acc.fullName);
+  S = {
+    ...defaultState(),
+    view: 'today',
+    accountId: acc.id,
+    fullName: acc.fullName,
+    email: acc.email,
+    paydayMode: acc.paydayMode || 'bimonthly',
+    customPayday: acc.customPayday || '',
+    salt: acc.salt,
+    w: hydratedW,
+    t: acc.t || [],
+    b: acc.b || [],
+    n: acc.n || 20
+  };
+  localStorage.setItem(OWVault.STORAGE_SESSION, JSON.stringify({ accountId: acc.id }));
+  location.replace('#today');
+}
+
+async function handleSignUp() {
+  const fullName = val('reg-name');
+  const email = val('reg-email').toLowerCase();
+  const pwd = val('reg-pwd');
+  const paydayMode = val('reg-payday') || 'bimonthly';
+  const preset = val('reg-preset') || 'starter';
+  const e = {};
+  if (!fullName) e['reg-name'] = 'Enter your name.';
+  if (!email || !email.includes('@')) e['reg-email'] = 'Enter a valid email address.';
+  if (!pwd || pwd.length < 6) e['reg-pwd'] = 'Use at least 6 characters for your vault key.';
+  if (Object.keys(e).length) return fail(e, ['reg-name', 'reg-email', 'reg-pwd', 'reg-payday', 'reg-preset']);
+
+  const reg = OWVault.loadRegistry();
+  if (Object.values(reg).some(a => a.email.toLowerCase() === email)) {
+    return fail({ 'reg-email': 'An account with this email already exists. Sign in instead.' }, ['reg-name', 'reg-email', 'reg-pwd', 'reg-payday', 'reg-preset']);
+  }
+
+  const salt = OWVault.randomSaltHex(16);
+  const pwdHash = await OWVault.hashPassword(pwd, salt);
+  sessionVaultKey = await OWVault.deriveVaultKey(pwd, salt);
+  const starter = await OWVault.createStarterWorkspace({ preset, fullName, cryptoKey: sessionVaultKey });
+  const hydratedW = await OWVault.hydrateWalletsInMemory(starter.w, sessionVaultKey, fullName);
+
+  let sbToken = '', sbUserId = '', cloudSynced = false;
+  if (OWVault.isSupabaseConfigured()) {
+    try {
+      const signUpRes = await OWVault.sbFetch('/auth/v1/signup', {
+        method: 'POST',
+        body: { email, password: pwd, data: { full_name: fullName } }
+      });
+      sbUserId = signUpRes?.user?.id || signUpRes?.id || '';
+      sbToken = signUpRes?.access_token || '';
+      if (!sbToken && sbUserId) {
+        const tokenRes = await OWVault.sbFetch('/auth/v1/token?grant_type=password', {
+          method: 'POST',
+          body: { email, password: pwd }
+        });
+        sbToken = tokenRes?.access_token || '';
+      }
+      cloudSynced = Boolean(sbUserId && sbToken);
+    } catch (err) {
+      if (/already registered|already exists/i.test(err.message)) {
+        return fail({ 'reg-email': `Supabase Sign-Up: ${err.message}` }, ['reg-name', 'reg-email', 'reg-pwd', 'reg-payday', 'reg-preset']);
+      }
+    }
+  }
+
+  const id = 'acc_' + Date.now();
+  reg[id] = {
+    id,
+    fullName,
+    email,
+    paydayMode,
+    customPayday: '',
+    salt,
+    pwdHash,
+    sbUserId,
+    cloudSynced,
+    w: starter.w,
+    t: starter.t,
+    b: starter.b,
+    n: starter.n
+  };
+  OWVault.saveRegistry(reg);
+  if (sbToken && sbUserId) {
+    await OWVault.syncAccountToSupabase(reg[id], sbToken, true);
+  }
+
+  S = {
+    ...defaultState(),
+    view: 'today',
+    accountId: id,
+    fullName,
+    email,
+    paydayMode,
+    customPayday: '',
+    salt,
+    sbToken,
+    sbUserId,
+    w: hydratedW,
+    t: starter.t,
+    b: starter.b,
+    n: starter.n
+  };
+  persistActiveAccount();
+  location.replace('#today');
+}
+
+async function openDemoAccount() {
+  await bootSession();
+  const reg = OWVault.loadRegistry();
+  const acc = reg.demo;
+  sessionVaultKey = await OWVault.deriveVaultKey('demo1234', acc.salt);
+  const hydratedW = await OWVault.hydrateWalletsInMemory(acc.w, sessionVaultKey, acc.fullName);
+  S = {
+    ...defaultState(),
+    view: 'today',
+    accountId: 'demo',
+    fullName: acc.fullName,
+    email: acc.email,
+    paydayMode: acc.paydayMode || 'bimonthly',
+    customPayday: acc.customPayday || '',
+    salt: acc.salt,
+    w: hydratedW,
+    t: acc.t,
+    b: acc.b,
+    n: acc.n
+  };
+  localStorage.setItem(OWVault.STORAGE_SESSION, JSON.stringify({ accountId: 'demo' }));
+  location.replace('#today');
+}
+
+function prefillSavedAccount(email) {
+  S.authTab = 'signin';
+  S.draft = { 'login-email': email, 'login-pwd': email === 'demo@onewallet.ph' ? 'demo1234' : '' };
+  S.errors = {};
+  R();
+  document.getElementById('login-pwd')?.focus();
+}
+
+function signOut() {
+  S.modal = '';
+  S.revealed = {};
+  sessionVaultKey = null;
+  location.replace('#login');
+}
+
+function openModal(m, id = 0) {
+  S.modal = m; S.editWid = 0; S.editTxId = 0; S.editBillId = 0; S.payBillId = 0; S.draft = {}; S.errors = {};
+  if (m === 'wallet' && id) {
+    S.editWid = id;
+    const w = S.w.find(x => x.id == id);
     if (w) S.draft = { wnm: w.n, wb: String(w.b), wstyle: w.style, wnum: w.num, wexp: w.exp, wcvv: w.cvv, wholder: w.holder };
   } else if (m === 'wallet') {
-    S.draft = { wstyle: 'bdo-gold', wexp: '08/29', wholder: 'JUAN DELA CRUZ' };
+    S.draft = { wstyle: 'bdo-gold', wexp: '08/29', wholder: (S.fullName || 'JUAN DELA CRUZ').toUpperCase() };
+  } else if (m === 'tx' && id) {
+    S.editTxId = id;
+    const t = S.t.find(x => x.id == id);
+    if (t) S.draft = { ty: t.a >= 0 ? '1' : '-1', am: String(Math.abs(t.a)), mw: String(t.w), mc: t.c, nt: t.s, td: `${getToday().slice(0, 4)}-${t.d}` };
+  } else if (m === 'tx') {
+    S.draft = { td: getToday(), mw: String(S.wid || S.w[0]?.id || 1) };
+  } else if (m === 'bill' && id) {
+    S.editBillId = id;
+    const b = S.b.find(x => x.id == id);
+    if (b) S.draft = { bn: b.n, ba: String(b.a), bd: b.d };
+  } else if (m === 'payBill' && id) {
+    S.payBillId = id;
+    const b = S.b.find(x => x.id == id);
+    if (b) S.draft = { pw: String(S.w[0]?.id || 1), pa: String(b.a) };
+  } else if (m === 'payday') {
+    S.draft = { pmode: S.paydayMode || 'bimonthly', pcustom: S.customPayday || OWVault.shiftDaysISO(getToday(), 15), pname: S.fullName };
+  } else if (m === 'supabase') {
+    const cfg = OWVault.getSupabaseConfig();
+    S.draft = { sburl: cfg.url, sbkey: cfg.anonKey };
   }
   R();
 }
-function closeModal() { S.modal = ''; S.editWid = 0; S.draft = {}; S.errors = {}; R(); }
+function closeModal() { S.modal = ''; S.editWid = 0; S.editTxId = 0; S.editBillId = 0; S.payBillId = 0; S.draft = {}; S.errors = {}; R(); }
 let keepWallet = false;
 function openWallet(id) { S.wid = id; if (S.view !== 'wallets') { keepWallet = true; go('wallets'); } else R(); }
 
@@ -274,54 +600,137 @@ function pickCardStyle(styleId) {
     wnum: document.getElementById('wnum')?.value ?? S.draft.wnum ?? '',
     wexp: document.getElementById('wexp')?.value ?? S.draft.wexp ?? '08/29',
     wcvv: document.getElementById('wcvv')?.value ?? S.draft.wcvv ?? '',
-    wholder: document.getElementById('wholder')?.value ?? S.draft.wholder ?? 'JUAN DELA CRUZ',
+    wholder: document.getElementById('wholder')?.value ?? S.draft.wholder ?? (S.fullName || 'JUAN DELA CRUZ').toUpperCase(),
     wstyle: styleId
   };
   R();
 }
 
 /* ---------- Mutations ---------- */
-function addTx(w, a, s, c) { S.t.unshift({ id: ++S.n, d: TODAY.slice(5), s, c, w: +w, a }); const wl = S.w.find(z => z.id == w); if (wl) wl.b += a; }
-function delTx(id) { const t = S.t.find(x => x.id == id); if (!t) return; const wl = S.w.find(z => z.id == t.w); if (wl) wl.b -= t.a; S.t = S.t.filter(x => x.id != id); R(); }
+function addTx(w, a, s, c, md = getToday().slice(5)) {
+  S.t.unshift({ id: ++S.n, d: md, s, c, w: +w, a });
+  const wl = S.w.find(z => z.id == w);
+  if (wl) wl.b = Math.round((wl.b + a) * 100) / 100;
+}
+function delTx(id) {
+  const t = S.t.find(x => x.id == id);
+  if (!t) return;
+  const wl = S.w.find(z => z.id == t.w);
+  if (wl) wl.b = Math.round((wl.b - t.a) * 100) / 100;
+  S.t = S.t.filter(x => x.id != id);
+  R();
+}
 function delBill(id) { S.b = S.b.filter(x => x.id != id); R(); }
+function delWallet(id) {
+  S.w = S.w.filter(x => x.id != id);
+  S.t = S.t.filter(t => t.w != id);
+  if (S.wid == id) S.wid = 0;
+  closeModal();
+}
 
 function fail(errors, fields) { S.errors = errors; S.draft = { ...S.draft, ...Object.fromEntries(fields.map(f => [f, val(f)])) }; R(); }
 
 function saveTx() {
   const a = parseFloat(val('am'));
-  if (!(a > 0)) return fail({ am: 'Enter an amount greater than ₱0.' }, ['ty', 'am', 'mw', 'mc', 'nt']);
-  addTx(val('mw'), +val('ty') * a, val('nt') || (val('ty') === '1' ? 'Income' : 'Expense'), val('mc'));
+  if (!(a > 0)) return fail({ am: 'Enter an amount greater than ₱0.' }, ['ty', 'am', 'mw', 'mc', 'nt', 'td']);
+  if (!S.w.length) return fail({ mw: 'Add a wallet first before recording an entry.' }, ['ty', 'am', 'mw', 'mc', 'nt', 'td']);
+  const signedAmt = +val('ty') * a;
+  const label = val('nt') || (val('ty') === '1' ? 'Income' : 'Expense');
+  const cat = val('mc') || 'Others';
+  const rawDate = val('td') || getToday();
+  const md = rawDate.length >= 5 ? rawDate.slice(-5) : getToday().slice(5);
+
+  if (S.editTxId) {
+    const old = S.t.find(x => x.id == S.editTxId);
+    if (old) {
+      const oldWl = S.w.find(z => z.id == old.w);
+      if (oldWl) oldWl.b = Math.round((oldWl.b - old.a) * 100) / 100;
+      Object.assign(old, { w: +val('mw'), a: signedAmt, s: label, c: cat, d: md });
+      const newWl = S.w.find(z => z.id == old.w);
+      if (newWl) newWl.b = Math.round((newWl.b + signedAmt) * 100) / 100;
+    }
+  } else {
+    addTx(val('mw'), signedAmt, label, cat, md);
+  }
   closeModal();
 }
-function saveWallet() {
+
+async function saveWallet() {
   const n = val('wnm'), b = val('wb') === '' ? 0 : parseFloat(val('wb'));
   const style = S.draft.wstyle || 'bdo-gold';
   const rawDigits = cleanDigits(val('wnum'));
   const num = rawDigits.length >= 4 ? rawDigits.padStart(16, '453289102341') : ('453289102341' + String(1000 + Math.floor(Math.random() * 8999)));
   const exp = val('wexp') || '08/29';
   const cvv = (val('wcvv').replace(/\D/g, '').slice(0, 4)) || '418';
-  const holder = (val('wholder') || 'JUAN DELA CRUZ').toUpperCase();
+  const holder = (val('wholder') || S.fullName || 'JUAN DELA CRUZ').toUpperCase();
   const e = {};
   if (!n) e.wnm = 'Give this wallet or card a name.';
   if (isNaN(b)) e.wb = 'Enter a number, or leave it blank for ₱0.';
   if (Object.keys(e).length) return fail(e, ['wnm', 'wb', 'wnum', 'wexp', 'wcvv', 'wholder']);
+
+  if (!sessionVaultKey) {
+    sessionVaultKey = await OWVault.deriveVaultKey('demo1234', S.salt || 'a1b2c3d4e5f60718293a4b5c6d7e8f90');
+  }
+  const encMeta = await OWVault.buildEncryptedWallet({ id: S.editWid || ++S.n, n, b, style, num, exp, cvv, holder }, sessionVaultKey);
+
   if (S.editWid) {
     const existing = S.w.find(x => x.id == S.editWid);
-    if (existing) Object.assign(existing, { n, b, style, num, exp, cvv, holder });
+    if (existing) Object.assign(existing, { ...encMeta, num, exp, cvv, holder });
   } else {
-    S.w.push({ id: ++S.n, n, b, style, num, exp, cvv, holder });
+    S.w.push({ ...encMeta, num, exp, cvv, holder });
   }
   closeModal();
 }
+
 function saveBill() {
   const n = val('bn'), a = parseFloat(val('ba')), d = val('bd');
   const e = {};
   if (!n) e.bn = 'Name the bill.';
   if (!(a > 0)) e.ba = 'Enter an amount greater than ₱0.';
   if (Object.keys(e).length) return fail(e, ['bn', 'ba', 'bd']);
-  S.b.push({ id: ++S.n, n, a, d: d || 'No due date' });
+  if (S.editBillId) {
+    const existing = S.b.find(x => x.id == S.editBillId);
+    if (existing) Object.assign(existing, { n, a, d: d || 'Before payday' });
+  } else {
+    S.b.push({ id: ++S.n, n, a, d: d || 'Before payday' });
+  }
   closeModal();
 }
+
+function confirmPayBill() {
+  const bill = S.b.find(x => x.id == S.payBillId);
+  if (!bill) return closeModal();
+  const wid = +val('pw');
+  const amt = parseFloat(val('pa'));
+  if (!(amt > 0)) return fail({ pa: 'Enter a valid payment amount.' }, ['pw', 'pa']);
+  addTx(wid, -amt, `${bill.n} (Bill paid)`, 'Bills', getToday().slice(5));
+  S.b = S.b.filter(x => x.id != bill.id);
+  closeModal();
+}
+
+function savePaydaySettings() {
+  const fullName = val('pname') || S.fullName;
+  const mode = val('pmode') || 'bimonthly';
+  const custom = val('pcustom') || '';
+  if (mode === 'custom' && (!custom || custom <= getToday())) {
+    return fail({ pcustom: 'Pick a future payday date after today.' }, ['pname', 'pmode', 'pcustom']);
+  }
+  S.fullName = fullName;
+  S.paydayMode = mode;
+  S.customPayday = custom;
+  closeModal();
+}
+
+function saveSupabaseSettings() {
+  const url = val('sburl');
+  const key = val('sbkey');
+  OWVault.setSupabaseConfig(url, key);
+  if (url && key && S.sbToken && S.sbUserId) {
+    persistActiveAccount();
+  }
+  closeModal();
+}
+
 function saveReconcile() {
   const w = S.w.find(x => x.id == S.wid), real = parseFloat(val('rb'));
   if (isNaN(real)) return fail({ rb: 'Enter the balance your app shows.' }, ['rb']);
@@ -329,7 +738,15 @@ function saveReconcile() {
   if (diff) addTx(w.id, diff, 'Balance correction', 'Others');
   closeModal();
 }
-function resetData() { S = { ...seed(), view: S.view }; try { localStorage.removeItem('onewallet'); } catch (e) {} closeModal(); go('today'); }
+
+async function resetData() {
+  localStorage.removeItem('onewallet_accounts_v2');
+  localStorage.removeItem('onewallet_active_session_v2');
+  S = defaultState();
+  await bootSession();
+  closeModal();
+  go('today');
+}
 
 /* ---------- Alert import ---------- */
 const SAMPLES = [
@@ -363,7 +780,7 @@ const field = (id, label, input, hint = '') => {
 };
 const inputAttrs = id => `id="${id}" name="${id}" class="${C.input}" ${S.errors[id] ? `aria-invalid="true" aria-describedby="${id}-err"` : ''}`;
 const draft = (id, fallback = '') => esc(S.draft[id] ?? fallback);
-const walletOptions = sel => S.w.map(w => `<option value="${w.id}" ${w.id == sel ? 'selected' : ''}>${esc(w.n)}</option>`).join('');
+const walletOptions = sel => S.w.map(w => `<option value="${w.id}" ${w.id == sel ? 'selected' : ''}>${esc(w.n)} (${peso(w.b)})</option>`).join('');
 
 /* Tactile Bank & E-Wallet Card Face Renderer */
 function renderCardFace(w, { revealed = false, mini = false } = {}) {
@@ -394,17 +811,17 @@ function renderCardFace(w, { revealed = false, mini = false } = {}) {
     </div>
     <div class="relative flex items-center justify-between mb-3">
       <span class="inline-flex items-center gap-2">${emvChipSvg(silverChip)}${nfcSvg(st.light)}</span>
-      <span class="text-[13px] font-medium ${sub}">${revealed ? 'Unlocked · Local vault' : 'Masked · Device only'}</span>
+      <span class="text-[13px] font-medium ${sub}">${revealed ? 'Decrypted in memory · AES-256-GCM' : 'Encrypted · AES-256-GCM'}</span>
     </div>
     <div class="relative flex items-baseline justify-between gap-2 mb-2.5">
-      <p class="tnum text-lg font-semibold tracking-[0.04em] ${fg}">${formatCardNum(w.num, revealed)}</p>
+      <p class="tnum text-lg font-semibold tracking-[0.04em] ${fg}">${formatCardNum(w, revealed)}</p>
       ${revealed ? `<button type="button" class="text-[13px] font-semibold underline cursor-pointer ${fg}" onclick="event.stopPropagation();copyCardNum(${w.id})">${S.copiedId === w.id ? 'Copied' : 'Copy'}</button>` : ''}
     </div>
     <div class="relative flex items-center justify-between pt-2.5 border-t ${st.light ? 'border-ink/15' : 'border-white/15'} text-[13px] ${sub}">
       <div class="flex items-center gap-4 tnum">
         <span>Exp <strong class="font-semibold ${fg}">${revealed ? esc(w.exp || '08/29') : '••/••'}</strong></span>
         <span>CVV <strong class="font-semibold ${fg}">${revealed ? esc(w.cvv || '418') : '•••'}</strong></span>
-        <span class="hidden sm:inline truncate max-w-[150px]">${revealed ? esc(w.holder || 'JUAN DELA CRUZ') : 'Cardholder hidden'}</span>
+        <span class="hidden sm:inline truncate max-w-[150px]">${revealed ? esc(w.holder || S.fullName.toUpperCase()) : 'Cardholder hidden'}</span>
       </div>
       ${netBadgeSvg(st.net, st.light)}
     </div>
@@ -419,7 +836,9 @@ function txRow(t, deletable) {
       <div class="${C.meta} truncate">${esc(t.c)} · ${walletName(t.w)}</div>
     </div>
     <span class="tnum text-sm font-semibold whitespace-nowrap ${t.a > 0 ? 'text-gain' : 'text-ink'}">${signed(t.a)}</span>
-    ${deletable ? `<button type="button" class="${C.iconBtn} -mr-1.5" onclick="delTx(${t.id})" aria-label="Delete ${esc(t.s)}, ${signed(t.a)}">${icon(I.trash, 'w-4 h-4', 16)}</button>` : ''}
+    ${deletable ? `
+      <button type="button" class="${C.iconBtn}" onclick="openModal('tx', ${t.id})" aria-label="Edit ${esc(t.s)}">${icon(I.edit, 'w-4 h-4', 16)}</button>
+      <button type="button" class="${C.iconBtn} -mr-1.5" onclick="delTx(${t.id})" aria-label="Delete ${esc(t.s)}, ${signed(t.a)}">${icon(I.trash, 'w-4 h-4', 16)}</button>` : ''}
   </li>`;
 }
 function ledgerList(list, { deletable = false, limit = Infinity, empty = 'No entries yet.' } = {}) {
@@ -438,10 +857,13 @@ const pageHead = (title, sub, actions = '') => `
       ${sub ? `<p class="text-xs font-medium text-mute mb-0.5">${sub}</p>` : ''}
       <h1 class="${C.h1}">${title}</h1>
     </div>
-    ${actions ? `<div class="flex items-center gap-2">${actions}</div>` : ''}
+    ${actions ? `<div class="flex flex-wrap items-center gap-2">${actions}</div>` : ''}
   </header>`;
 const cardHead = (title, action = '') => `<div class="flex items-center justify-between mb-1.5"><h2 class="${C.cardTitle}">${title}</h2>${action}</div>`;
-const longDate = () => new Date(TODAY).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+const longDate = () => {
+  const [y, m, d] = getToday().split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+};
 
 /* ---------- Dialogs ---------- */
 const dialogShell = (title, body, actions) => `
@@ -450,11 +872,11 @@ const dialogShell = (title, body, actions) => `
     <button type="button" class="${C.iconBtn} -mr-1.5" onclick="closeModal()" aria-label="Close">${icon(I.close, 'w-4 h-4', 16)}</button>
   </div>
   ${body}
-  <div class="flex justify-end gap-2.5 mt-6 pt-3 border-t border-line">${actions}</div>`;
+  <div class="flex flex-wrap items-center justify-end gap-2.5 mt-6 pt-3 border-t border-line">${actions}</div>`;
 const cancelBtn = `<button type="button" class="${C.btn2}" onclick="closeModal()">Cancel</button>`;
 
 const M = {
-  tx: () => dialogShell('Add entry', `
+  tx: () => dialogShell(S.editTxId ? 'Edit entry' : 'Add entry', `
     <div class="grid grid-cols-2 gap-x-3">
       ${field('ty', 'Type', `<select ${inputAttrs('ty')}><option value="-1" ${S.draft.ty === '1' ? '' : 'selected'}>Expense</option><option value="1" ${S.draft.ty === '1' ? 'selected' : ''}>Income</option></select>`)}
       ${field('am', 'Amount', `<input ${inputAttrs('am')} type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" value="${draft('am')}" data-autofocus>`)}
@@ -463,17 +885,21 @@ const M = {
       ${field('mw', 'Wallet', `<select ${inputAttrs('mw')}>${walletOptions(S.draft.mw)}</select>`)}
       ${field('mc', 'Category', `<select ${inputAttrs('mc')}>${CATEGORIES.map(c => `<option ${S.draft.mc === c ? 'selected' : ''}>${c}</option>`).join('')}</select>`)}
     </div>
-    ${field('nt', 'Merchant or note', `<input ${inputAttrs('nt')} placeholder="e.g. Jollibee" value="${draft('nt')}">`, 'Optional')}`,
-    `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveTx()">Save entry</button>`),
+    <div class="grid grid-cols-2 gap-x-3">
+      ${field('nt', 'Merchant or note', `<input ${inputAttrs('nt')} placeholder="e.g. Jollibee" value="${draft('nt')}">`, 'Optional')}
+      ${field('td', 'Date', `<input ${inputAttrs('td')} type="date" value="${draft('td', getToday())}">`)}
+    </div>`,
+    `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveTx()">${S.editTxId ? 'Update entry' : 'Save entry'}</button>`),
 
   wallet: () => {
     const selStyle = S.draft.wstyle || 'bdo-gold';
     const groups = ['Credit & Bank Cards', 'Digital Banks & E-Wallets'];
-    return dialogShell(S.editWid ? 'Card design & private info' : 'Add wallet or card', `
+    const editingWallet = S.editWid ? S.w.find(x => x.id == S.editWid) : null;
+    return dialogShell(S.editWid ? 'Card design & encrypted vault' : 'Add wallet or card', `
       <div class="mb-4">
         <p class="text-sm font-medium text-ink mb-1">Choose card design</p>
-        <p class="${C.meta} mb-2.5">Select a bank or digital wallet style. Card details stay in this browser’s local storage and are never sent to any database.</p>
-        <div class="max-h-[230px] overflow-y-auto pr-1 space-y-3 border border-line rounded-ctl p-2.5 bg-paper">
+        <p class="${C.meta} mb-2.5">Card numbers, expiry and CVV are encrypted in your browser with AES-256-GCM before storage—never readable in any database.</p>
+        <div class="max-h-[210px] overflow-y-auto pr-1 space-y-3 border border-line rounded-ctl p-2.5 bg-paper">
           ${groups.map(g => `
             <div>
               <p class="text-xs font-semibold text-ink-2 mb-2">${g}</p>
@@ -491,24 +917,58 @@ const M = {
         ${field('wb', 'Current balance', `<input ${inputAttrs('wb')} type="number" inputmode="decimal" step="0.01" placeholder="0.00" value="${draft('wb')}">`)}
       </div>
       <div class="grid grid-cols-2 gap-x-3">
-        ${field('wnum', 'Card / account number', `<input ${inputAttrs('wnum')} inputmode="numeric" maxlength="19" placeholder="4532 8910 2341 4821" value="${draft('wnum')}">`, 'Masked on screen by default')}
-        ${field('wholder', 'Cardholder name', `<input ${inputAttrs('wholder')} placeholder="JUAN DELA CRUZ" value="${draft('wholder', 'JUAN DELA CRUZ')}">`)}
+        ${field('wnum', 'Card / account number', `<input ${inputAttrs('wnum')} inputmode="numeric" maxlength="19" placeholder="4532 8910 2341 4821" value="${draft('wnum')}">`, 'Encrypted with AES-256-GCM')}
+        ${field('wholder', 'Cardholder name', `<input ${inputAttrs('wholder')} placeholder="JUAN DELA CRUZ" value="${draft('wholder', (S.fullName || 'JUAN DELA CRUZ').toUpperCase())}">`)}
       </div>
       <div class="grid grid-cols-2 gap-x-3">
         ${field('wexp', 'Expiry (MM/YY)', `<input ${inputAttrs('wexp')} maxlength="5" placeholder="08/29" value="${draft('wexp', '08/29')}">`)}
-        ${field('wcvv', 'Security code (CVV)', `<input ${inputAttrs('wcvv')} inputmode="numeric" maxlength="4" placeholder="418" value="${draft('wcvv')}">`, 'Stored locally only')}
-      </div>`,
-      `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveWallet()">Save</button>`);
+        ${field('wcvv', 'Security code (CVV)', `<input ${inputAttrs('wcvv')} inputmode="numeric" maxlength="4" placeholder="418" value="${draft('wcvv')}">`, 'Zero-knowledge encrypted')}
+      </div>
+      ${editingWallet?.encrypted_card_vault ? `<p class="text-xs text-mute truncate bg-subtle px-3 py-2 rounded-ctl">DB Ciphertext: <code>${esc(editingWallet.encrypted_card_vault.slice(0, 56))}…</code></p>` : ''}`,
+      `${S.editWid ? `<button type="button" class="${C.btnDanger} mr-auto" onclick="delWallet(${S.editWid})">Delete wallet</button>` : ''}${cancelBtn}<button type="button" class="${C.btn}" onclick="saveWallet()">Save</button>`);
   },
 
-  bill: () => dialogShell('Set aside a bill', `
-    ${field('bn', 'Bill', `<input ${inputAttrs('bn')} placeholder="e.g. Converge" value="${draft('bn')}" data-autofocus>`)}
+  bill: () => dialogShell(S.editBillId ? 'Edit bill' : 'Set aside a bill', `
+    ${field('bn', 'Bill', `<input ${inputAttrs('bn')} placeholder="e.g. Converge Wi-Fi" value="${draft('bn')}" data-autofocus>`)}
     <div class="grid grid-cols-2 gap-x-3">
       ${field('ba', 'Amount', `<input ${inputAttrs('ba')} type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" value="${draft('ba')}">`)}
-      ${field('bd', 'Due', `<input ${inputAttrs('bd')} placeholder="e.g. Oct 12" value="${draft('bd')}">`, 'Optional')}
+      ${field('bd', 'Due label or date', `<input ${inputAttrs('bd')} placeholder="e.g. Nov 25" value="${draft('bd')}">`, 'Optional')}
     </div>
-    <p class="${C.meta}">This amount is taken out before your daily safe-to-spend is worked out.</p>`,
-    `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveBill()">Set aside</button>`),
+    <p class="${C.meta}">This amount is quarantined from your total balance before your daily safe-to-spend is worked out.</p>`,
+    `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveBill()">${S.editBillId ? 'Update bill' : 'Set aside'}</button>`),
+
+  payBill: () => {
+    const b = S.b.find(x => x.id == S.payBillId);
+    if (!b) return '';
+    return dialogShell(`Pay ${esc(b.n)}`, `
+      <p class="text-sm text-ink-2 mb-4">Paying this bill deducts the amount from your chosen wallet, records a <strong class="font-semibold text-ink">Bills</strong> entry in your ledger today, and clears the quarantined bill.</p>
+      <div class="grid grid-cols-2 gap-x-3">
+        ${field('pw', 'Pay from wallet', `<select ${inputAttrs('pw')}>${walletOptions(S.draft.pw)}</select>`)}
+        ${field('pa', 'Payment amount', `<input ${inputAttrs('pa')} type="number" inputmode="decimal" step="0.01" min="0" value="${draft('pa', String(b.a))}" data-autofocus>`)}
+      </div>`,
+      `${cancelBtn}<button type="button" class="${C.btn}" onclick="confirmPayBill()">Confirm payment</button>`);
+  },
+
+  payday: () => {
+    const curMode = S.draft.pmode || S.paydayMode || 'bimonthly';
+    return dialogShell('Profile & payday cycle', `
+      ${field('pname', 'Account display name', `<input ${inputAttrs('pname')} value="${draft('pname', S.fullName)}" data-autofocus>`)}
+      ${field('pmode', 'Payday schedule', `
+        <select id="pmode" class="${C.input}" onchange="S.draft.pmode=this.value;S.draft.pname=val('pname');R()">
+          <option value="bimonthly" ${curMode === 'bimonthly' ? 'selected' : ''}>15th & 30th (Bi-monthly PH standard)</option>
+          <option value="monthly-15" ${curMode === 'monthly-15' ? 'selected' : ''}>Every 15th of the month</option>
+          <option value="monthly-30" ${curMode === 'monthly-30' ? 'selected' : ''}>Every 30th / end of the month</option>
+          <option value="custom" ${curMode === 'custom' ? 'selected' : ''}>Custom target payday date</option>
+        </select>`, `Today is ${shortDate(getToday().slice(5))}. Your daily allowance divides free funds across the days until payday.`)}
+      ${curMode === 'custom' ? field('pcustom', 'Target payday date', `<input ${inputAttrs('pcustom')} type="date" min="${OWVault.shiftDaysISO(getToday(), 1)}" value="${draft('pcustom', S.customPayday || OWVault.shiftDaysISO(getToday(), 15))}">`) : ''}`,
+      `${cancelBtn}<button type="button" class="${C.btn}" onclick="savePaydaySettings()">Save schedule</button>`);
+  },
+
+  supabase: () => dialogShell('Connect Supabase Cloud Database', `
+    <p class="text-sm text-ink-2 mb-4">Enter your Supabase Project URL and Anon Key to sync accounts, wallets, ledger entries and bills to PostgreSQL with Row-Level Security. Card vault secrets remain encrypted client-side with AES-256-GCM before leaving your browser.</p>
+    ${field('sburl', 'Supabase Project URL', `<input ${inputAttrs('sburl')} placeholder="https://your-project.supabase.co" value="${draft('sburl')}" data-autofocus>`)}
+    ${field('sbkey', 'Supabase Anon Public Key', `<input ${inputAttrs('sbkey')} placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." value="${draft('sbkey')}">`, 'Run supabase/schema.sql in your Supabase SQL Editor first.')}`,
+    `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveSupabaseSettings()">Save connection</button>`),
 
   reconcile: () => {
     const w = S.w.find(x => x.id == S.wid);
@@ -518,37 +978,89 @@ const M = {
       `${cancelBtn}<button type="button" class="${C.btn}" onclick="saveReconcile()">Save correction</button>`);
   },
 
-  reset: () => dialogShell('Reset demo data?', `
-    <p class="text-sm text-ink-2">This replaces every wallet, entry and bill in this browser with the original sample data. It can’t be undone.</p>`,
+  reset: () => dialogShell('Reset all accounts & demo data?', `
+    <p class="text-sm text-ink-2">This clears local accounts in this browser and restores the original sample workspace. It can’t be undone.</p>`,
     `${cancelBtn}<button type="button" class="${C.btnDanger}" onclick="resetData()" data-autofocus>Reset data</button>`)
 };
 
 /* ---------- Views ---------- */
 const V = {
-  login: () => `
-    <main class="min-h-dvh flex items-center justify-center p-6">
-      <div class="w-full max-w-[400px]">
-        <div class="flex items-center gap-2.5 mb-7">
-          <span class="w-7 h-7 rounded-ctl bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-3 h-2 rounded-[2px] bg-card"></span></span>
-          <span class="text-base font-semibold tracking-[-0.01em]">One Wallet</span>
+  login: () => {
+    const isSignup = S.authTab === 'signup';
+    const savedAccs = OWVault.listAccounts();
+    const sbConnected = OWVault.isSupabaseConfigured();
+    return `
+      <main class="min-h-dvh flex items-center justify-center p-6">
+        <div class="w-full max-w-[440px]">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-ctl bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-3 h-2 rounded-[2px] bg-card"></span></span>
+              <span class="text-base font-semibold tracking-[-0.01em]">One Wallet</span>
+            </div>
+            <button type="button" class="${C.link} text-xs inline-flex items-center gap-1" onclick="openModal('supabase')">
+              ${icon(I.cloud, 'w-3.5 h-3.5', 14)}${sbConnected ? 'Supabase Cloud active' : 'Connect Supabase'}
+            </button>
+          </div>
+
+          <h1 class="${C.h1} mb-1.5">Know what you can spend today.</h1>
+          <p class="text-sm text-ink-2 mb-5">Multi-account passbook ledger with configurable payday cycles and an AES-256-GCM client-encrypted card vault.</p>
+
+          <div class="${C.card} p-5">
+            <div role="tablist" class="grid grid-cols-2 gap-1 p-1 rounded-ctl bg-subtle mb-4">
+              <button type="button" role="tab" aria-selected="${!isSignup}" class="h-8 rounded-[6px] text-sm font-medium cursor-pointer ${!isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signin';S.errors={};R()">Sign in</button>
+              <button type="button" role="tab" aria-selected="${isSignup}" class="h-8 rounded-[6px] text-sm font-medium cursor-pointer ${isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signup';S.errors={};R()">Create account</button>
+            </div>
+
+            ${!isSignup ? `
+              ${field('login-email', 'Email', `<input ${inputAttrs('login-email')} type="email" autocomplete="username" placeholder="demo@onewallet.ph" value="${draft('login-email', 'demo@onewallet.ph')}">`)}
+              ${field('login-pwd', 'Password', `<input ${inputAttrs('login-pwd')} type="password" autocomplete="current-password" placeholder="••••••••" value="${draft('login-pwd', 'demo1234')}">`, 'Unlocks your account & derives your in-memory AES-256-GCM card key')}
+              <div class="flex flex-col gap-2 mt-2">
+                <button type="button" class="${C.btn} w-full" onclick="handleSignIn()">Sign in to workspace</button>
+                <button type="button" class="${C.btn2} w-full" onclick="openDemoAccount()">Try Demo Account (Juan Dela Cruz)</button>
+              </div>
+            ` : `
+              ${field('reg-name', 'Full name', `<input ${inputAttrs('reg-name')} placeholder="e.g. Maria Santos" value="${draft('reg-name')}">`)}
+              <div class="grid grid-cols-2 gap-x-3">
+                ${field('reg-email', 'Email', `<input ${inputAttrs('reg-email')} type="email" autocomplete="email" placeholder="maria@onewallet.ph" value="${draft('reg-email')}">`)}
+                ${field('reg-pwd', 'Password', `<input ${inputAttrs('reg-pwd')} type="password" autocomplete="new-password" placeholder="Min. 6 chars" value="${draft('reg-pwd')}">`)}
+              </div>
+              <div class="grid grid-cols-2 gap-x-3">
+                ${field('reg-payday', 'Payday cycle', `
+                  <select id="reg-payday" class="${C.input}">
+                    <option value="bimonthly">15th & 30th</option>
+                    <option value="monthly-15">Every 15th</option>
+                    <option value="monthly-30">Every 30th</option>
+                  </select>`)}
+                ${field('reg-preset', 'Starting setup', `
+                  <select id="reg-preset" class="${C.input}">
+                    <option value="starter">4 PH Wallets (₱0)</option>
+                    <option value="demo">Sample Demo Data</option>
+                    <option value="blank">Blank Workspace</option>
+                  </select>`)}
+              </div>
+              <button type="button" class="${C.btn} w-full mt-1" onclick="handleSignUp()">Create encrypted account</button>
+            `}
+          </div>
+
+          ${savedAccs.length > 0 ? `
+            <div class="mt-4 pt-3 border-t border-line">
+              <p class="text-xs font-medium text-mute mb-2">Accounts on this device (${savedAccs.length})</p>
+              <div class="flex flex-wrap gap-1.5">
+                ${savedAccs.map(a => `<button type="button" class="h-7 px-2.5 rounded-full text-xs font-medium border border-line bg-card hover:border-ink/40 cursor-pointer" onclick="prefillSavedAccount('${esc(a.email)}')">${esc(a.fullName)} · ${esc(a.email)}</button>`).join('')}
+              </div>
+            </div>` : ''}
         </div>
-        <h1 class="${C.h1} mb-2">Know what you can spend today.</h1>
-        <p class="text-sm text-ink-2 mb-6">GCash, Maya, GoTyme and cash in one passbook ledger, with bills quarantined and a clear daily allowance until payday.</p>
-        <div class="${C.card} p-5">
-          ${field('login-email', 'Email', `<input id="login-email" class="${C.input}" type="email" autocomplete="username" value="demo@onewallet.ph">`)}
-          ${field('login-pwd', 'Password', `<input id="login-pwd" class="${C.input}" type="password" autocomplete="current-password" value="demo1234">`)}
-          <button type="button" class="${C.btn} w-full" onclick="signIn()">Open workspace</button>
-        </div>
-        <p class="${C.meta} mt-4">Local-first demo: any email works and all records stay in this browser.</p>
-      </div>
-    </main>`,
+      </main>`;
+  },
 
   today: () => {
     const tot = total(), res = reserved(), fr = free(), dl = daysLeft(), nb = S.b.length;
     const freePct = tot > 0 ? Math.min(100, Math.round(fr / tot * 100)) : 0;
     const resPct = tot > 0 ? Math.min(100 - freePct, Math.round(res / tot * 100)) : 0;
+    const pdShort = shortDate(getPayday().slice(5));
     return `
-      ${pageHead('Today', `${longDate()} · Payday cycle`, `
+      ${pageHead('Today', `${longDate()} · ${esc(S.fullName)} · ${OWVault.paydayModeLabel(S.paydayMode)}`, `
+        <button type="button" class="${C.btn2} max-sm:hidden" onclick="openModal('payday')">Payday cycle</button>
         <button type="button" class="${C.btn2} max-sm:hidden" onclick="go('import')">Import alert</button>
         <button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-4 h-4', 16)}Add entry</button>`)}
 
@@ -558,7 +1070,7 @@ const V = {
             <div class="flex items-center gap-2 mb-1">
               <span class="w-2 h-2 rounded-full bg-gain" aria-hidden="true"></span>
               <p id="runway-label" class="text-sm font-semibold text-ink">Safe to spend per day</p>
-              <span class="text-xs text-mute">· ${dl} days until ${shortDate(PAYDAY.slice(5))}</span>
+              <span class="text-xs text-mute">· ${dl} day${dl === 1 ? '' : 's'} until ${pdShort}</span>
             </div>
             <div class="flex items-baseline gap-2 my-1">
               <p class="tnum text-[38px] md:text-[42px] leading-[1.08] font-semibold tracking-[-0.025em] text-ink">${peso(perDay())}</p>
@@ -581,7 +1093,7 @@ const V = {
           <dl class="tnum text-sm max-lg:border-t max-lg:pt-4 lg:border-l border-line lg:pl-6 space-y-2.5">
             <div class="flex justify-between"><dt class="text-ink-2">Across ${S.w.length} wallet${S.w.length === 1 ? '' : 's'}</dt><dd class="font-medium text-ink">${peso(tot)}</dd></div>
             <div class="flex justify-between border-b border-line pb-2.5"><dt class="text-ink-2">Set aside for ${nb} bill${nb === 1 ? '' : 's'}</dt><dd class="text-ink-2">− ${peso(res)}</dd></div>
-            <div class="flex justify-between pt-0.5"><dt class="text-ink-2">Free until ${shortDate(PAYDAY.slice(5))}</dt><dd class="font-medium text-ink">${peso(fr)}</dd></div>
+            <div class="flex justify-between pt-0.5"><dt class="text-ink-2">Free until ${pdShort}</dt><dd class="font-medium text-ink">${peso(fr)}</dd></div>
             <div class="flex justify-between pt-2 border-t border-line font-semibold text-ink"><dt>Daily allowance (÷ ${dl}d)</dt><dd>${peso(perDay())} / day</dd></div>
           </dl>
         </div>
@@ -616,7 +1128,13 @@ const V = {
           <section class="${C.card} p-4 flex-1 flex flex-col justify-between">
             ${cardHead('Bills set aside', `<a href="#bills" class="${C.link}">Manage</a>`)}
             <ul class="divide-y divide-line/60">
-              ${S.b.map(b => `<li class="flex justify-between text-sm py-2"><span><span class="font-medium text-ink">${esc(b.n)}</span> <span class="text-xs text-mute">· due ${esc(b.d)}</span></span><span class="tnum font-medium text-ink">${peso(b.a)}</span></li>`).join('') || `<li class="py-2 ${C.meta}">Nothing set aside.</li>`}
+              ${S.b.map(b => `<li class="flex items-center justify-between text-sm py-2 gap-2">
+                <span class="min-w-0 truncate"><span class="font-medium text-ink">${esc(b.n)}</span> <span class="text-xs text-mute">· due ${esc(b.d)}</span></span>
+                <span class="flex items-center gap-2.5 shrink-0">
+                  <span class="tnum font-medium text-ink">${peso(b.a)}</span>
+                  <button type="button" class="${C.link} text-xs font-semibold" onclick="openModal('payBill', ${b.id})">Pay</button>
+                </span>
+              </li>`).join('') || `<li class="py-2 ${C.meta}">Nothing set aside.</li>`}
             </ul>
           </section>
         </div>
@@ -630,16 +1148,17 @@ const V = {
       const rev = !!S.revealed[w.id];
       return `
         <button type="button" class="${C.link} inline-flex items-center gap-1 mb-3 -ml-1" onclick="S.wid=0;S.revealed={};R()">${icon(I.back, 'w-4 h-4', 16)}All wallets & cards</button>
-        ${pageHead(esc(w.n), 'Wallet & local card vault', `
+        ${pageHead(esc(w.n), 'Wallet & AES-256-GCM encrypted card vault', `
           <button type="button" class="${C.btn2}" onclick="openModal('wallet', ${w.id})">${icon(I.card, 'w-4 h-4', 16)}Card style & info</button>
-          <button type="button" class="${C.btn}" onclick="openModal('reconcile')">Correct balance</button>`)}
+          <button type="button" class="${C.btn2}" onclick="openModal('reconcile')">Correct balance</button>
+          <button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-4 h-4', 16)}Add entry</button>`)}
 
         <div class="grid gap-4 lg:grid-cols-[1.08fr_1fr] items-stretch mb-5">
           <section class="${C.card} overflow-hidden flex flex-col justify-between">
             ${renderCardFace(w, { revealed: rev })}
             <div class="px-5 py-3 flex flex-wrap items-center justify-between gap-2 bg-card">
-              <span class="text-xs text-mute">${rev ? 'Visible on your screen only · Never sent to any server' : 'Card numbers & CVV are hidden from view'}</span>
-              <button type="button" class="${C.link} inline-flex items-center gap-1.5 text-xs font-semibold" onclick="toggleReveal(${w.id})">
+              <span class="text-sm text-mute">${rev ? 'Decrypted in memory for your session only' : 'Encrypted at rest with AES-256-GCM'}</span>
+              <button type="button" class="${C.link} inline-flex items-center gap-1.5 text-sm font-semibold" onclick="toggleReveal(${w.id})">
                 ${icon(rev ? I.eyeOff : I.eye, 'w-4 h-4', 16)}${rev ? 'Hide card info' : 'Reveal card info'}
               </button>
             </div>
@@ -649,11 +1168,11 @@ const V = {
             <div>
               <p class="text-sm font-medium text-ink-2">Recorded balance</p>
               <p class="tnum text-[36px] leading-tight font-semibold tracking-[-0.02em] my-1">${peso(w.b)}</p>
-              <p class="${C.meta}">${list.length} entr${list.length === 1 ? 'y' : 'ies'} · If this differs from your ${esc(w.n)} app, choose Correct balance.</p>
+              <p class="text-sm text-mute">${list.length} entr${list.length === 1 ? 'y' : 'ies'} · If this differs from your ${esc(w.n)} app, choose Correct balance.</p>
             </div>
-            <div class="pt-3 mt-3 border-t border-line flex items-center justify-between text-xs text-mute">
-              <span>Privacy status</span>
-              <span class="font-medium text-ink">Device-only local storage</span>
+            <div class="pt-3 mt-3 border-t border-line flex items-center justify-between text-sm text-mute">
+              <span>Database storage</span>
+              <span class="font-medium text-ink">Zero-knowledge AES-256-GCM</span>
             </div>
           </section>
         </div>
@@ -667,12 +1186,12 @@ const V = {
     const tot = total();
     const anyRevealed = Object.values(S.revealed).some(Boolean);
     return `
-      ${pageHead('Wallets & Cards', `${S.w.length} accounts · ${peso(tot)} total · Private local card vault`, `
+      ${pageHead('Wallets & Cards', `${S.w.length} accounts · ${peso(tot)} total · Zero-knowledge encrypted card vault`, `
         ${anyRevealed ? `<button type="button" class="${C.btn2}" onclick="maskAllCards()">${icon(I.eyeOff, 'w-4 h-4', 16)}Mask all</button>` : ''}
         <button type="button" class="${C.btn}" onclick="openModal('wallet')">${icon(I.plus, 'w-4 h-4', 16)}Add wallet or card</button>`)}
 
       <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-line text-sm text-ink-2">
-        <span class="inline-flex items-center gap-2">${icon(I.lock, 'w-4 h-4', 16)}<span><strong class="font-semibold text-ink">Private to this device:</strong> Card numbers, expiry and CVV stay masked on screen and live only in this browser—never shared with other users or any database.</span></span>
+        <span class="inline-flex items-center gap-2">${icon(I.lock, 'w-4 h-4', 16)}<span><strong class="font-semibold text-ink">Zero-knowledge encryption:</strong> Card numbers, expiry and CVV are encrypted in-browser with AES-256-GCM before storage—never readable by other users or the database.</span></span>
         <span class="tnum text-[13px] font-medium text-mute">${anyRevealed ? 'Card info unlocked on screen' : 'All cards masked'}</span>
       </div>
 
@@ -751,12 +1270,14 @@ const V = {
   },
 
   bills: () => `
-    ${pageHead('Bills', `${peso(reserved())} set aside until payday`, `<button type="button" class="${C.btn}" onclick="openModal('bill')">${icon(I.plus, 'w-4 h-4', 16)}Set aside a bill</button>`)}
+    ${pageHead('Bills', `${peso(reserved())} set aside until ${shortDate(getPayday().slice(5))}`, `<button type="button" class="${C.btn}" onclick="openModal('bill')">${icon(I.plus, 'w-4 h-4', 16)}Set aside a bill</button>`)}
     <section class="${C.card}">
       <ul class="divide-y divide-line">
-        ${S.b.map(b => `<li class="flex items-center gap-4 px-5 py-3.5">
+        ${S.b.map(b => `<li class="flex items-center gap-3 px-5 py-3.5">
           <span class="flex-1 min-w-0"><span class="block text-sm font-semibold text-ink">${esc(b.n)}</span><span class="block ${C.meta}">Due ${esc(b.d)}</span></span>
           <span class="tnum text-sm font-semibold text-ink">${peso(b.a)}</span>
+          <button type="button" class="${C.btn2} h-8 px-3 text-xs" onclick="openModal('payBill', ${b.id})">${icon(I.check, 'w-3.5 h-3.5', 14)}Pay bill</button>
+          <button type="button" class="${C.iconBtn}" onclick="openModal('bill', ${b.id})" aria-label="Edit ${esc(b.n)}">${icon(I.edit, 'w-4 h-4', 16)}</button>
           <button type="button" class="${C.iconBtn} -mr-1.5" onclick="delBill(${b.id})" aria-label="Remove ${esc(b.n)}">${icon(I.trash, 'w-4 h-4', 16)}</button>
         </li>`).join('') || `<li class="p-8 text-center ${C.meta}">No bills set aside. Add rent, Wi-Fi or subscriptions so your daily amount stays honest.</li>`}
       </ul>
@@ -791,35 +1312,67 @@ const V = {
       </div>`;
   },
 
-  settings: () => `
-    ${pageHead('Settings', 'Workspace & browser storage')}
-    <section class="${C.card} divide-y divide-line">
-      <div class="flex flex-wrap items-center justify-between gap-3 p-5">
-        <div><p class="text-sm font-semibold text-ink">Sign out</p><p class="${C.meta}">Close workspace session. Your data stays saved in this browser.</p></div>
-        <button type="button" class="${C.btn2}" onclick="signOut()">Sign out</button>
-      </div>
-      <div class="flex flex-wrap items-center justify-between gap-3 p-5">
-        <div><p class="text-sm font-semibold text-ink">Reset demo data</p><p class="${C.meta}">Replace everything with the original sample wallets, entries and bills.</p></div>
-        <button type="button" class="${C.btn2} !border-alert/50 !text-alert hover:!bg-alert/5" onclick="openModal('reset')">Reset…</button>
-      </div>
-    </section>`,
+  settings: () => {
+    const sbCfg = OWVault.getSupabaseConfig();
+    const accounts = OWVault.listAccounts();
+    return `
+      ${pageHead('Settings', `${esc(S.fullName)} (${esc(S.email)})`)}
+      <div class="space-y-4">
+        <section class="${C.card} divide-y divide-line">
+          <div class="flex flex-wrap items-center justify-between gap-3 p-5">
+            <div>
+              <p class="text-sm font-semibold text-ink">Profile & payday schedule</p>
+              <p class="${C.meta}">Current mode: ${OWVault.paydayModeLabel(S.paydayMode)} · Next payday: ${shortDate(getPayday().slice(5))} (${daysLeft()} days left)</p>
+            </div>
+            <button type="button" class="${C.btn2}" onclick="openModal('payday')">Configure…</button>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 p-5">
+            <div>
+              <p class="text-sm font-semibold text-ink">Supabase Cloud Database</p>
+              <p class="${C.meta}">${sbCfg.url ? `Connected to ${esc(sbCfg.url)}` : 'Not connected yet · Currently using encrypted local multi-account store'}</p>
+            </div>
+            <button type="button" class="${C.btn2}" onclick="openModal('supabase')">${sbCfg.url ? 'Edit connection' : 'Connect Supabase…'}</button>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 p-5">
+            <div>
+              <p class="text-sm font-semibold text-ink">Switch account or sign out (${accounts.length} saved on device)</p>
+              <p class="${C.meta}">Signed in as ${esc(S.fullName)} · Card vault key stays in session memory only.</p>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" class="${C.btn2}" onclick="S.authTab='signup';signOut()">Create new account</button>
+              <button type="button" class="${C.btn}" onclick="signOut()">Switch / Sign out</button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 p-5">
+            <div>
+              <p class="text-sm font-semibold text-ink">Reset demo data</p>
+              <p class="${C.meta}">Restore original sample wallets, entries and bills.</p>
+            </div>
+            <button type="button" class="${C.btn2} !border-alert/50 !text-alert hover:!bg-alert/5" onclick="openModal('reset')">Reset…</button>
+          </div>
+        </section>
+      </div>`;
+  },
 
   help: () => `
-    ${pageHead('Help', 'How One Wallet computes your daily allowance')}
+    ${pageHead('Help', 'How One Wallet & Zero-Knowledge Card Encryption work')}
     <div class="grid gap-4 lg:grid-cols-2 items-start">
       <section class="${C.card} p-5">
         ${cardHead('How the daily amount works')}
         <ol class="mt-2 space-y-2.5 text-sm text-ink-2 list-decimal pl-5">
-          <li>Add each wallet with the balance its app shows right now.</li>
-          <li>Set aside bills due before your next payday.</li>
-          <li>What’s left, divided by the days until payday, is your safe amount per day.</li>
+          <li>Add each wallet or card with the balance its app shows right now.</li>
+          <li>Set aside bills due before your next payday (and click <strong>Pay bill</strong> when you settle them).</li>
+          <li>What’s left, divided by the real days until your configured payday, is your safe amount per day.</li>
         </ol>
       </section>
       <section class="${C.card} p-5">
-        ${cardHead('Common questions')}
+        ${cardHead('Security & architecture')}
         <dl class="mt-2 space-y-3 text-sm">
-          <div><dt class="font-semibold text-ink">Does it connect to my bank?</dt><dd class="text-ink-2">No. It only reads alert text you paste in.</dd></div>
-          <div><dt class="font-semibold text-ink">Are my card numbers public or stored in a database?</dt><dd class="text-ink-2">Never. Card numbers, expiry dates and CVV codes are masked on screen by default and stored only in your browser’s local storage on this device.</dd></div>
+          <div><dt class="font-semibold text-ink">Are my card numbers readable in the database?</dt><dd class="text-ink-2">No. Card numbers, expiry dates and CVV codes are encrypted in your browser using Web Crypto <code>AES-256-GCM</code> derived from your password via <code>PBKDF2-SHA256</code> before saving to Supabase or local storage.</dd></div>
+          <div><dt class="font-semibold text-ink">Can other users see my wallets or entries?</dt><dd class="text-ink-2">No. Each account is isolated by Row-Level Security (<code>auth.uid() = user_id</code>) in Supabase PostgreSQL and keyed separately per user.</dd></div>
           <div><dt class="font-semibold text-ink">A balance looks wrong.</dt><dd class="text-ink-2">Open the wallet and choose Correct balance. We add an entry for the difference so your history stays traceable.</dd></div>
         </dl>
       </section>
@@ -829,7 +1382,7 @@ const V = {
     ${pageHead('More', 'All workspace sections')}
     <section class="${C.card}">
       <ul class="divide-y divide-line">
-        ${[['wallets', 'Wallets'], ['insights', 'Insights'], ['settings', 'Settings'], ['help', 'Help']].map(([k, l]) => `<li><a href="#${k}" class="flex items-center justify-between px-5 py-3.5 text-sm font-medium hover:bg-subtle/60">${l}<span class="text-mute">${icon(I.chevron, 'w-4 h-4', 16)}</span></a></li>`).join('')}
+        ${[['wallets', 'Wallets & Cards'], ['insights', 'Insights'], ['settings', 'Settings & Accounts'], ['help', 'Help']].map(([k, l]) => `<li><a href="#${k}" class="flex items-center justify-between px-5 py-3.5 text-sm font-medium hover:bg-subtle/60">${l}<span class="text-mute">${icon(I.chevron, 'w-4 h-4', 16)}</span></a></li>`).join('')}
       </ul>
     </section>`
 };
@@ -847,12 +1400,13 @@ const navLink = ([k, l]) => {
 };
 
 function R() {
-  try { localStorage.setItem('onewallet', JSON.stringify({ w: S.w, t: S.t, b: S.b, n: S.n })); } catch (e) {}
+  if (S.view !== 'login') persistActiveAccount();
   const app = document.getElementById('app');
   if (S.view === 'login') { app.innerHTML = V.login(); document.title = 'Sign in · One Wallet'; return; }
 
   const label = [...NAV, ...NAV2, ['more', 'More']].find(n => n[0] === S.view)?.[1] ?? 'One Wallet';
   document.title = `${label} · One Wallet`;
+  const pdShort = shortDate(getPayday().slice(5));
 
   app.innerHTML = `
     <div class="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
@@ -863,16 +1417,22 @@ function R() {
         </a>
         <nav aria-label="Main" class="flex flex-col gap-0.5">${NAV.map(navLink).join('')}</nav>
         <nav aria-label="Account" class="mt-auto flex flex-col gap-0.5 pb-3">${NAV2.map(navLink).join('')}</nav>
-        <div class="border-t border-line px-6 py-3.5 flex items-center justify-between text-xs text-mute">
-          <span>Next payday</span>
-          <span class="tnum font-semibold text-ink">${shortDate(PAYDAY.slice(5))}</span>
+        <div class="border-t border-line px-6 py-3.5 text-xs">
+          <div class="flex items-center justify-between text-mute mb-1">
+            <span>Next payday</span>
+            <button type="button" class="tnum font-semibold text-ink hover:underline cursor-pointer" onclick="openModal('payday')">${pdShort}</button>
+          </div>
+          <div class="flex items-center justify-between text-mute truncate">
+            <span class="truncate">${esc(S.fullName)}</span>
+            <button type="button" class="text-ink-2 hover:text-ink underline cursor-pointer shrink-0 ml-2" onclick="signOut()">Switch</button>
+          </div>
         </div>
       </aside>
 
       <div class="min-w-0">
         <header class="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b border-line">
           <span class="flex items-center gap-2"><span class="w-6 h-6 rounded-[6px] bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-2.5 h-2 rounded-[1px] bg-card"></span></span><span class="text-sm font-semibold">One Wallet</span></span>
-          <span class="${C.meta}">Payday ${shortDate(PAYDAY.slice(5))}</span>
+          <button type="button" class="${C.meta} hover:text-ink cursor-pointer" onclick="openModal('payday')">Payday ${pdShort}</button>
         </header>
         <main id="main" class="w-full max-w-[1208px] mx-auto px-4 pt-5 pb-28 md:px-8 md:pt-7 md:pb-12">${V[S.view]()}</main>
       </div>
@@ -904,7 +1464,7 @@ function R() {
 window.addEventListener('keydown', e => {
   if (!S.modal) return;
   if (e.key === 'Escape') { closeModal(); return; }
-  if (e.key === 'Enter' && e.target.matches('[role="dialog"] input')) { e.preventDefault(); document.querySelector('[role="dialog"] .flex.justify-end button:last-child')?.click(); return; }
+  if (e.key === 'Enter' && e.target.matches('[role="dialog"] input')) { e.preventDefault(); document.querySelector('[role="dialog"] .flex-wrap.items-center.justify-end button:last-child')?.click(); return; }
   if (e.key !== 'Tab') return;
   const f = [...document.querySelectorAll('[role="dialog"] :is(button,input,select,textarea,a[href])')];
   if (!f.length) return;
@@ -920,13 +1480,14 @@ function route() {
   if (!V[v]) v = 'login';
   const changed = S.view !== v;
   S.view = v; S.modal = ''; S.pr = changed ? null : S.pr;
-  if (changed) S.revealed = {}; // Auto-mask card details when changing screens
+  if (changed) S.revealed = {};
   if (changed && !keepWallet) S.wid = 0;
   keepWallet = false;
   R();
   if (changed) window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
+bootSession();
 route();
 </script>
 </body>
