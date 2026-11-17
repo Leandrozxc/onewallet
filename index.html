@@ -31,7 +31,7 @@
   </style>
 </head>
 <body class="bg-paper text-ink font-sans antialiased">
-<div id="app"></div>
+<div id="app"><div id="shell-root"></div><div id="modal-root"></div></div>
 <script src="./src/vault-cloud.js"></script>
 <script>
 /* ---------- Dynamic Dates & Formatting ---------- */
@@ -168,11 +168,11 @@ const bankBrandHtml = (st, customName) => {
 /* ---------- Shared class vocabulary ---------- */
 const C = {
   card: 'bg-card border border-line rounded-card',
-  btn: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-ink text-card text-sm font-medium hover:bg-ink-2 active:scale-[0.98] transition-[transform,background-color] duration-100 cursor-pointer',
-  btn2: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-card text-ink border border-line text-sm font-medium hover:bg-subtle hover:border-ink/30 active:scale-[0.98] transition-[transform,background-color,border-color] duration-100 cursor-pointer',
-  btnDanger: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-alert text-card text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-transform duration-100 cursor-pointer',
+  btn: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-ink text-card text-sm font-medium hover:bg-ink-2 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none transition-[transform,background-color,opacity] duration-100 cursor-pointer',
+  btn2: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-card text-ink border border-line text-sm font-medium hover:bg-subtle hover:border-ink/30 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none transition-[transform,background-color,border-color,opacity] duration-100 cursor-pointer',
+  btnDanger: 'inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-ctl bg-alert text-card text-sm font-medium hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none transition-[transform,opacity] duration-100 cursor-pointer',
   link: 'text-sm font-medium text-ink-2 hover:text-ink underline-offset-4 hover:underline cursor-pointer',
-  iconBtn: 'inline-flex items-center justify-center w-8 h-8 rounded-ctl text-mute hover:text-ink hover:bg-subtle cursor-pointer',
+  iconBtn: 'inline-flex items-center justify-center w-9 h-9 max-sm:w-11 max-sm:h-11 touch-target rounded-ctl text-mute hover:text-ink hover:bg-subtle cursor-pointer',
   label: 'block text-sm font-medium text-ink mb-1.5',
   input: 'w-full h-10 px-3 rounded-ctl bg-card border border-line text-[15px] text-ink placeholder:text-mute focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink aria-[invalid=true]:border-alert aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-alert',
   cardTitle: 'text-base font-semibold text-ink tracking-[-0.01em]',
@@ -182,6 +182,7 @@ const C = {
 
 /* ---------- Active Session & Multi-Account State ---------- */
 let sessionVaultKey = null; // In-memory AES-GCM-256 CryptoKey (never written to disk)
+let lastModalTrigger = null; // Element that opened the current modal for focus restoration
 
 const defaultState = () => {
   const td = OWVault.todayISO();
@@ -189,6 +190,7 @@ const defaultState = () => {
   return {
     view: 'login',
     authTab: 'signin', // 'signin' | 'signup'
+    authBusy: false,
     accountId: 'demo',
     fullName: 'Juan Dela Cruz',
     email: 'demo@onewallet.ph',
@@ -308,7 +310,6 @@ async function bootSession() {
         b: acc.b || [],
         n: acc.n || 20
       };
-      R();
     }
   } catch (e) {}
 }
@@ -333,86 +334,96 @@ function go(v) {
 }
 
 async function handleSignIn() {
+  if (S.authBusy) return;
   const email = val('login-email').toLowerCase();
   const pwd = val('login-pwd');
   if (!email || !pwd) return fail({ 'login-email': !email ? 'Enter your email.' : '', 'login-pwd': !pwd ? 'Enter your password.' : '' }, ['login-email', 'login-pwd']);
 
-  // 1. If Supabase Cloud is configured, try authenticating with Supabase Auth first
-  if (OWVault.isSupabaseConfigured()) {
-    try {
-      const authData = await OWVault.sbFetch('/auth/v1/token?grant_type=password', {
-        method: 'POST',
-        body: { email, password: pwd }
-      });
-      if (authData && authData.access_token && authData.user) {
-        const uid = authData.user.id;
-        const token = authData.access_token;
-        const cloudAcc = await OWVault.pullAccountFromSupabase(uid, token);
-        const salt = cloudAcc?.salt || OWVault.randomSaltHex(16);
-        sessionVaultKey = await OWVault.deriveVaultKey(pwd, salt);
-        const hydratedW = cloudAcc ? await OWVault.hydrateWalletsInMemory(cloudAcc.w, sessionVaultKey, cloudAcc.fullName) : [];
-        S = {
-          ...defaultState(),
-          view: 'today',
-          accountId: email,
-          fullName: cloudAcc?.fullName || authData.user.user_metadata?.full_name || email.split('@')[0],
-          email,
-          paydayMode: cloudAcc?.paydayMode || 'bimonthly',
-          customPayday: cloudAcc?.customPayday || '',
-          salt,
-          sbToken: token,
-          sbUserId: uid,
-          cloudStatus: 'Connected to Supabase Cloud',
-          w: hydratedW,
-          t: cloudAcc?.t || [],
-          b: cloudAcc?.b || [],
-          n: cloudAcc?.n || 20
-        };
-        persistActiveAccount();
-        location.replace('#today');
-        return;
-      }
-    } catch (cloudErr) {
-      // Fall through to local registry if account exists locally, otherwise surface error
-      const reg = OWVault.loadRegistry();
-      const localMatch = Object.values(reg).find(a => a.email.toLowerCase() === email);
-      if (!localMatch) {
-        return fail({ 'login-pwd': `Supabase Auth: ${cloudErr.message}` }, ['login-email', 'login-pwd']);
+  S.authBusy = true;
+  S.draft = { ...S.draft, 'login-email': email, 'login-pwd': pwd };
+  R();
+
+  try {
+    // 1. If Supabase Cloud is configured, try authenticating with Supabase Auth first
+    if (OWVault.isSupabaseConfigured()) {
+      try {
+        const authData = await OWVault.sbFetch('/auth/v1/token?grant_type=password', {
+          method: 'POST',
+          body: { email, password: pwd }
+        });
+        if (authData && authData.access_token && authData.user) {
+          const uid = authData.user.id;
+          const token = authData.access_token;
+          const cloudAcc = await OWVault.pullAccountFromSupabase(uid, token);
+          const salt = cloudAcc?.salt || OWVault.randomSaltHex(16);
+          sessionVaultKey = await OWVault.deriveVaultKey(pwd, salt);
+          const hydratedW = cloudAcc ? await OWVault.hydrateWalletsInMemory(cloudAcc.w, sessionVaultKey, cloudAcc.fullName) : [];
+          S = {
+            ...defaultState(),
+            view: 'today',
+            accountId: email,
+            fullName: cloudAcc?.fullName || authData.user.user_metadata?.full_name || email.split('@')[0],
+            email,
+            paydayMode: cloudAcc?.paydayMode || 'bimonthly',
+            customPayday: cloudAcc?.customPayday || '',
+            salt,
+            sbToken: token,
+            sbUserId: uid,
+            cloudStatus: 'Connected to Supabase Cloud',
+            w: hydratedW,
+            t: cloudAcc?.t || [],
+            b: cloudAcc?.b || [],
+            n: cloudAcc?.n || 20
+          };
+          persistActiveAccount();
+          location.replace('#today');
+          return;
+        }
+      } catch (cloudErr) {
+        // Fall through to local registry if account exists locally, otherwise surface error
+        const reg = OWVault.loadRegistry();
+        const localMatch = Object.values(reg).find(a => a.email.toLowerCase() === email);
+        if (!localMatch) {
+          return fail({ 'login-pwd': `Supabase Auth: ${cloudErr.message}` }, ['login-email', 'login-pwd']);
+        }
       }
     }
-  }
 
-  // 2. Local Multi-Account Registry Verification (PBKDF2-SHA256)
-  const reg = OWVault.loadRegistry();
-  const acc = Object.values(reg).find(a => a.email.toLowerCase() === email);
-  if (!acc) {
-    return fail({ 'login-email': 'No account found with this email. Switch to Create account to register.' }, ['login-email', 'login-pwd']);
+    // 2. Local Multi-Account Registry Verification (PBKDF2-SHA256)
+    const reg = OWVault.loadRegistry();
+    const acc = Object.values(reg).find(a => a.email.toLowerCase() === email);
+    if (!acc) {
+      return fail({ 'login-email': 'No account found with this email. Switch to Create account to register.' }, ['login-email', 'login-pwd']);
+    }
+    const computedHash = await OWVault.hashPassword(pwd, acc.salt);
+    if (acc.pwdHash && computedHash !== acc.pwdHash) {
+      return fail({ 'login-pwd': 'Incorrect password for this account.' }, ['login-email', 'login-pwd']);
+    }
+    sessionVaultKey = await OWVault.deriveVaultKey(pwd, acc.salt);
+    const hydratedW = await OWVault.hydrateWalletsInMemory(acc.w, sessionVaultKey, acc.fullName);
+    S = {
+      ...defaultState(),
+      view: 'today',
+      accountId: acc.id,
+      fullName: acc.fullName,
+      email: acc.email,
+      paydayMode: acc.paydayMode || 'bimonthly',
+      customPayday: acc.customPayday || '',
+      salt: acc.salt,
+      w: hydratedW,
+      t: acc.t || [],
+      b: acc.b || [],
+      n: acc.n || 20
+    };
+    localStorage.setItem(OWVault.STORAGE_SESSION, JSON.stringify({ accountId: acc.id }));
+    location.replace('#today');
+  } finally {
+    S.authBusy = false;
   }
-  const computedHash = await OWVault.hashPassword(pwd, acc.salt);
-  if (acc.pwdHash && computedHash !== acc.pwdHash) {
-    return fail({ 'login-pwd': 'Incorrect password for this account.' }, ['login-email', 'login-pwd']);
-  }
-  sessionVaultKey = await OWVault.deriveVaultKey(pwd, acc.salt);
-  const hydratedW = await OWVault.hydrateWalletsInMemory(acc.w, sessionVaultKey, acc.fullName);
-  S = {
-    ...defaultState(),
-    view: 'today',
-    accountId: acc.id,
-    fullName: acc.fullName,
-    email: acc.email,
-    paydayMode: acc.paydayMode || 'bimonthly',
-    customPayday: acc.customPayday || '',
-    salt: acc.salt,
-    w: hydratedW,
-    t: acc.t || [],
-    b: acc.b || [],
-    n: acc.n || 20
-  };
-  localStorage.setItem(OWVault.STORAGE_SESSION, JSON.stringify({ accountId: acc.id }));
-  location.replace('#today');
 }
 
 async function handleSignUp() {
+  if (S.authBusy) return;
   const fullName = val('reg-name');
   const email = val('reg-email').toLowerCase();
   const pwd = val('reg-pwd');
@@ -429,99 +440,114 @@ async function handleSignUp() {
     return fail({ 'reg-email': 'An account with this email already exists. Sign in instead.' }, ['reg-name', 'reg-email', 'reg-pwd', 'reg-payday', 'reg-preset']);
   }
 
-  const salt = OWVault.randomSaltHex(16);
-  const pwdHash = await OWVault.hashPassword(pwd, salt);
-  sessionVaultKey = await OWVault.deriveVaultKey(pwd, salt);
-  const starter = await OWVault.createStarterWorkspace({ preset, fullName, cryptoKey: sessionVaultKey });
-  const hydratedW = await OWVault.hydrateWalletsInMemory(starter.w, sessionVaultKey, fullName);
+  S.authBusy = true;
+  S.draft = { ...S.draft, 'reg-name': fullName, 'reg-email': email, 'reg-pwd': pwd, 'reg-payday': paydayMode, 'reg-preset': preset };
+  R();
 
-  let sbToken = '', sbUserId = '', cloudSynced = false;
-  if (OWVault.isSupabaseConfigured()) {
-    try {
-      const signUpRes = await OWVault.sbFetch('/auth/v1/signup', {
-        method: 'POST',
-        body: { email, password: pwd, data: { full_name: fullName } }
-      });
-      sbUserId = signUpRes?.user?.id || signUpRes?.id || '';
-      sbToken = signUpRes?.access_token || '';
-      if (!sbToken && sbUserId) {
-        const tokenRes = await OWVault.sbFetch('/auth/v1/token?grant_type=password', {
+  try {
+    const salt = OWVault.randomSaltHex(16);
+    const pwdHash = await OWVault.hashPassword(pwd, salt);
+    sessionVaultKey = await OWVault.deriveVaultKey(pwd, salt);
+    const starter = await OWVault.createStarterWorkspace({ preset, fullName, cryptoKey: sessionVaultKey });
+    const hydratedW = await OWVault.hydrateWalletsInMemory(starter.w, sessionVaultKey, fullName);
+
+    let sbToken = '', sbUserId = '', cloudSynced = false;
+    if (OWVault.isSupabaseConfigured()) {
+      try {
+        const signUpRes = await OWVault.sbFetch('/auth/v1/signup', {
           method: 'POST',
-          body: { email, password: pwd }
+          body: { email, password: pwd, data: { full_name: fullName } }
         });
-        sbToken = tokenRes?.access_token || '';
-      }
-      cloudSynced = Boolean(sbUserId && sbToken);
-    } catch (err) {
-      if (/already registered|already exists/i.test(err.message)) {
-        return fail({ 'reg-email': `Supabase Sign-Up: ${err.message}` }, ['reg-name', 'reg-email', 'reg-pwd', 'reg-payday', 'reg-preset']);
+        sbUserId = signUpRes?.user?.id || signUpRes?.id || '';
+        sbToken = signUpRes?.access_token || '';
+        if (!sbToken && sbUserId) {
+          const tokenRes = await OWVault.sbFetch('/auth/v1/token?grant_type=password', {
+            method: 'POST',
+            body: { email, password: pwd }
+          });
+          sbToken = tokenRes?.access_token || '';
+        }
+        cloudSynced = Boolean(sbUserId && sbToken);
+      } catch (err) {
+        if (/already registered|already exists/i.test(err.message)) {
+          return fail({ 'reg-email': `Supabase Sign-Up: ${err.message}` }, ['reg-name', 'reg-email', 'reg-pwd', 'reg-payday', 'reg-preset']);
+        }
       }
     }
-  }
 
-  const id = 'acc_' + Date.now();
-  reg[id] = {
-    id,
-    fullName,
-    email,
-    paydayMode,
-    customPayday: '',
-    salt,
-    pwdHash,
-    sbUserId,
-    cloudSynced,
-    w: starter.w,
-    t: starter.t,
-    b: starter.b,
-    n: starter.n
-  };
-  OWVault.saveRegistry(reg);
-  if (sbToken && sbUserId) {
-    await OWVault.syncAccountToSupabase(reg[id], sbToken, true);
-  }
+    const id = 'acc_' + Date.now();
+    reg[id] = {
+      id,
+      fullName,
+      email,
+      paydayMode,
+      customPayday: '',
+      salt,
+      pwdHash,
+      sbUserId,
+      cloudSynced,
+      w: starter.w,
+      t: starter.t,
+      b: starter.b,
+      n: starter.n
+    };
+    OWVault.saveRegistry(reg);
+    if (sbToken && sbUserId) {
+      await OWVault.syncAccountToSupabase(reg[id], sbToken, true);
+    }
 
-  S = {
-    ...defaultState(),
-    view: 'today',
-    accountId: id,
-    fullName,
-    email,
-    paydayMode,
-    customPayday: '',
-    salt,
-    sbToken,
-    sbUserId,
-    w: hydratedW,
-    t: starter.t,
-    b: starter.b,
-    n: starter.n
-  };
-  persistActiveAccount();
-  location.replace('#today');
+    S = {
+      ...defaultState(),
+      view: 'today',
+      accountId: id,
+      fullName,
+      email,
+      paydayMode,
+      customPayday: '',
+      salt,
+      sbToken,
+      sbUserId,
+      w: hydratedW,
+      t: starter.t,
+      b: starter.b,
+      n: starter.n
+    };
+    persistActiveAccount();
+    location.replace('#today');
+  } finally {
+    S.authBusy = false;
+  }
 }
 
 async function openDemoAccount() {
-  await bootSession();
-  const reg = OWVault.loadRegistry();
-  const acc = reg.demo;
-  sessionVaultKey = await OWVault.deriveVaultKey('demo1234', acc.salt);
-  const hydratedW = await OWVault.hydrateWalletsInMemory(acc.w, sessionVaultKey, acc.fullName);
-  S = {
-    ...defaultState(),
-    view: 'today',
-    accountId: 'demo',
-    fullName: acc.fullName,
-    email: acc.email,
-    paydayMode: acc.paydayMode || 'bimonthly',
-    customPayday: acc.customPayday || '',
-    salt: acc.salt,
-    w: hydratedW,
-    t: acc.t,
-    b: acc.b,
-    n: acc.n
-  };
-  localStorage.setItem(OWVault.STORAGE_SESSION, JSON.stringify({ accountId: 'demo' }));
-  location.replace('#today');
+  if (S.authBusy) return;
+  S.authBusy = true;
+  R();
+  try {
+    await bootSession();
+    const reg = OWVault.loadRegistry();
+    const acc = reg.demo;
+    sessionVaultKey = await OWVault.deriveVaultKey('demo1234', acc.salt);
+    const hydratedW = await OWVault.hydrateWalletsInMemory(acc.w, sessionVaultKey, acc.fullName);
+    S = {
+      ...defaultState(),
+      view: 'today',
+      accountId: 'demo',
+      fullName: acc.fullName,
+      email: acc.email,
+      paydayMode: acc.paydayMode || 'bimonthly',
+      customPayday: acc.customPayday || '',
+      salt: acc.salt,
+      w: hydratedW,
+      t: acc.t,
+      b: acc.b,
+      n: acc.n
+    };
+    localStorage.setItem(OWVault.STORAGE_SESSION, JSON.stringify({ accountId: 'demo' }));
+    location.replace('#today');
+  } finally {
+    S.authBusy = false;
+  }
 }
 
 function prefillSavedAccount(email) {
@@ -540,6 +566,9 @@ function signOut() {
 }
 
 function openModal(m, id = 0) {
+  if (!S.modal && document.activeElement && document.activeElement !== document.body) {
+    lastModalTrigger = document.activeElement;
+  }
   S.modal = m; S.editWid = 0; S.editTxId = 0; S.editBillId = 0; S.payBillId = 0; S.draft = {}; S.errors = {};
   if (m === 'wallet' && id) {
     S.editWid = id;
@@ -567,9 +596,16 @@ function openModal(m, id = 0) {
     const cfg = OWVault.getSupabaseConfig();
     S.draft = { sburl: cfg.url, sbkey: cfg.anonKey };
   }
-  R();
+  renderModal();
 }
-function closeModal() { S.modal = ''; S.editWid = 0; S.editTxId = 0; S.editBillId = 0; S.payBillId = 0; S.draft = {}; S.errors = {}; R(); }
+function closeModal(mutated = false) {
+  const trigger = lastModalTrigger;
+  lastModalTrigger = null;
+  S.modal = ''; S.editWid = 0; S.editTxId = 0; S.editBillId = 0; S.payBillId = 0; S.draft = {}; S.errors = {};
+  if (mutated) R();
+  else renderModal();
+  if (trigger && trigger.isConnected) trigger.focus();
+}
 let keepWallet = false;
 function openWallet(id) { S.wid = id; if (S.view !== 'wallets') { keepWallet = true; go('wallets'); } else R(); }
 
@@ -603,7 +639,7 @@ function pickCardStyle(styleId) {
     wholder: document.getElementById('wholder')?.value ?? S.draft.wholder ?? (S.fullName || 'JUAN DELA CRUZ').toUpperCase(),
     wstyle: styleId
   };
-  R();
+  renderModal();
 }
 
 /* ---------- Mutations ---------- */
@@ -625,10 +661,19 @@ function delWallet(id) {
   S.w = S.w.filter(x => x.id != id);
   S.t = S.t.filter(t => t.w != id);
   if (S.wid == id) S.wid = 0;
-  closeModal();
+  closeModal(true);
 }
 
-function fail(errors, fields) { S.errors = errors; S.draft = { ...S.draft, ...Object.fromEntries(fields.map(f => [f, val(f)])) }; R(); }
+function fail(errors, fields) {
+  S.authBusy = false;
+  S.errors = errors;
+  S.draft = { ...S.draft, ...Object.fromEntries(fields.map(f => [f, val(f)])) };
+  if (S.modal) renderModal();
+  else {
+    R();
+    document.querySelector('[aria-invalid="true"]')?.focus();
+  }
+}
 
 function saveTx() {
   const a = parseFloat(val('am'));
@@ -652,7 +697,7 @@ function saveTx() {
   } else {
     addTx(val('mw'), signedAmt, label, cat, md);
   }
-  closeModal();
+  closeModal(true);
 }
 
 async function saveWallet() {
@@ -679,7 +724,7 @@ async function saveWallet() {
   } else {
     S.w.push({ ...encMeta, num, exp, cvv, holder });
   }
-  closeModal();
+  closeModal(true);
 }
 
 function saveBill() {
@@ -694,7 +739,7 @@ function saveBill() {
   } else {
     S.b.push({ id: ++S.n, n, a, d: d || 'Before payday' });
   }
-  closeModal();
+  closeModal(true);
 }
 
 function confirmPayBill() {
@@ -705,7 +750,7 @@ function confirmPayBill() {
   if (!(amt > 0)) return fail({ pa: 'Enter a valid payment amount.' }, ['pw', 'pa']);
   addTx(wid, -amt, `${bill.n} (Bill paid)`, 'Bills', getToday().slice(5));
   S.b = S.b.filter(x => x.id != bill.id);
-  closeModal();
+  closeModal(true);
 }
 
 function savePaydaySettings() {
@@ -718,7 +763,7 @@ function savePaydaySettings() {
   S.fullName = fullName;
   S.paydayMode = mode;
   S.customPayday = custom;
-  closeModal();
+  closeModal(true);
 }
 
 function saveSupabaseSettings() {
@@ -728,7 +773,7 @@ function saveSupabaseSettings() {
   if (url && key && S.sbToken && S.sbUserId) {
     persistActiveAccount();
   }
-  closeModal();
+  closeModal(true);
 }
 
 function saveReconcile() {
@@ -736,7 +781,7 @@ function saveReconcile() {
   if (isNaN(real)) return fail({ rb: 'Enter the balance your app shows.' }, ['rb']);
   const diff = Math.round((real - w.b) * 100) / 100;
   if (diff) addTx(w.id, diff, 'Balance correction', 'Others');
-  closeModal();
+  closeModal(true);
 }
 
 async function resetData() {
@@ -744,7 +789,7 @@ async function resetData() {
   localStorage.removeItem('onewallet_active_session_v2');
   S = defaultState();
   await bootSession();
-  closeModal();
+  closeModal(true);
   go('today');
 }
 
@@ -954,7 +999,7 @@ const M = {
     return dialogShell('Profile & payday cycle', `
       ${field('pname', 'Account display name', `<input ${inputAttrs('pname')} value="${draft('pname', S.fullName)}" data-autofocus>`)}
       ${field('pmode', 'Payday schedule', `
-        <select id="pmode" class="${C.input}" onchange="S.draft.pmode=this.value;S.draft.pname=val('pname');R()">
+        <select id="pmode" class="${C.input}" onchange="S.draft.pmode=this.value;S.draft.pname=val('pname');renderModal()">
           <option value="bimonthly" ${curMode === 'bimonthly' ? 'selected' : ''}>15th & 30th (Bi-monthly PH standard)</option>
           <option value="monthly-15" ${curMode === 'monthly-15' ? 'selected' : ''}>Every 15th of the month</option>
           <option value="monthly-30" ${curMode === 'monthly-30' ? 'selected' : ''}>Every 30th / end of the month</option>
@@ -989,6 +1034,7 @@ const V = {
     const isSignup = S.authTab === 'signup';
     const savedAccs = OWVault.listAccounts();
     const sbConnected = OWVault.isSupabaseConfigured();
+    const busyAttr = S.authBusy ? 'disabled aria-busy="true"' : '';
     return `
       <main class="min-h-dvh flex items-center justify-center p-6">
         <div class="w-full max-w-[440px]">
@@ -997,7 +1043,7 @@ const V = {
               <span class="w-7 h-7 rounded-ctl bg-ink flex items-center justify-center" aria-hidden="true"><span class="w-3 h-2 rounded-[2px] bg-card"></span></span>
               <span class="text-base font-semibold tracking-[-0.01em]">One Wallet</span>
             </div>
-            <button type="button" class="${C.link} text-xs inline-flex items-center gap-1" onclick="openModal('supabase')">
+            <button type="button" class="${C.link} text-xs inline-flex items-center gap-1 touch-pill" onclick="openModal('supabase')">
               ${icon(I.cloud, 'w-3.5 h-3.5', 14)}${sbConnected ? 'Supabase Cloud active' : 'Connect Supabase'}
             </button>
           </div>
@@ -1006,47 +1052,49 @@ const V = {
           <p class="text-sm text-ink-2 mb-5">Multi-account passbook ledger with configurable payday cycles and an AES-256-GCM client-encrypted card vault.</p>
 
           <div class="${C.card} p-5">
-            <div role="tablist" class="grid grid-cols-2 gap-1 p-1 rounded-ctl bg-subtle mb-4">
-              <button type="button" role="tab" aria-selected="${!isSignup}" class="h-8 rounded-[6px] text-sm font-medium cursor-pointer ${!isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signin';S.errors={};R()">Sign in</button>
-              <button type="button" role="tab" aria-selected="${isSignup}" class="h-8 rounded-[6px] text-sm font-medium cursor-pointer ${isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signup';S.errors={};R()">Create account</button>
+            <div role="tablist" aria-label="Account access" class="grid grid-cols-2 gap-1 p-1 rounded-ctl bg-subtle mb-4">
+              <button type="button" id="tab-signin" role="tab" aria-selected="${!isSignup}" aria-controls="auth-tabpanel" tabindex="${!isSignup ? '0' : '-1'}" class="h-9 max-sm:h-10 rounded-[6px] text-sm font-medium cursor-pointer ${!isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signin';S.errors={};R()">Sign in</button>
+              <button type="button" id="tab-signup" role="tab" aria-selected="${isSignup}" aria-controls="auth-tabpanel" tabindex="${isSignup ? '0' : '-1'}" class="h-9 max-sm:h-10 rounded-[6px] text-sm font-medium cursor-pointer ${isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signup';S.errors={};R()">Create account</button>
             </div>
 
-            ${!isSignup ? `
-              ${field('login-email', 'Email', `<input ${inputAttrs('login-email')} type="email" autocomplete="username" placeholder="demo@onewallet.ph" value="${draft('login-email', 'demo@onewallet.ph')}">`)}
-              ${field('login-pwd', 'Password', `<input ${inputAttrs('login-pwd')} type="password" autocomplete="current-password" placeholder="••••••••" value="${draft('login-pwd', 'demo1234')}">`, 'Unlocks your account & derives your in-memory AES-256-GCM card key')}
-              <div class="flex flex-col gap-2 mt-2">
-                <button type="button" class="${C.btn} w-full" onclick="handleSignIn()">Sign in to workspace</button>
-                <button type="button" class="${C.btn2} w-full" onclick="openDemoAccount()">Try Demo Account (Juan Dela Cruz)</button>
-              </div>
-            ` : `
-              ${field('reg-name', 'Full name', `<input ${inputAttrs('reg-name')} placeholder="e.g. Maria Santos" value="${draft('reg-name')}">`)}
-              <div class="grid grid-cols-2 gap-x-3">
-                ${field('reg-email', 'Email', `<input ${inputAttrs('reg-email')} type="email" autocomplete="email" placeholder="maria@onewallet.ph" value="${draft('reg-email')}">`)}
-                ${field('reg-pwd', 'Password', `<input ${inputAttrs('reg-pwd')} type="password" autocomplete="new-password" placeholder="Min. 6 chars" value="${draft('reg-pwd')}">`)}
-              </div>
-              <div class="grid grid-cols-2 gap-x-3">
-                ${field('reg-payday', 'Payday cycle', `
-                  <select id="reg-payday" class="${C.input}">
-                    <option value="bimonthly">15th & 30th</option>
-                    <option value="monthly-15">Every 15th</option>
-                    <option value="monthly-30">Every 30th</option>
-                  </select>`)}
-                ${field('reg-preset', 'Starting setup', `
-                  <select id="reg-preset" class="${C.input}">
-                    <option value="starter">4 PH Wallets (₱0)</option>
-                    <option value="demo">Sample Demo Data</option>
-                    <option value="blank">Blank Workspace</option>
-                  </select>`)}
-              </div>
-              <button type="button" class="${C.btn} w-full mt-1" onclick="handleSignUp()">Create encrypted account</button>
-            `}
+            <div id="auth-tabpanel" role="tabpanel" aria-labelledby="${!isSignup ? 'tab-signin' : 'tab-signup'}">
+              ${!isSignup ? `
+                ${field('login-email', 'Email', `<input ${inputAttrs('login-email')} type="email" autocomplete="username" placeholder="demo@onewallet.ph" value="${draft('login-email', 'demo@onewallet.ph')}">`)}
+                ${field('login-pwd', 'Password', `<input ${inputAttrs('login-pwd')} type="password" autocomplete="current-password" placeholder="••••••••" value="${draft('login-pwd', 'demo1234')}">`, 'Unlocks your account & derives your in-memory AES-256-GCM card key')}
+                <div class="flex flex-col gap-2 mt-2">
+                  <button type="button" class="${C.btn} w-full" ${busyAttr} onclick="handleSignIn()">${S.authBusy ? 'Signing in & unlocking vault…' : 'Sign in to workspace'}</button>
+                  <button type="button" class="${C.btn2} w-full" ${busyAttr} onclick="openDemoAccount()">Try Demo Account (Juan Dela Cruz)</button>
+                </div>
+              ` : `
+                ${field('reg-name', 'Full name', `<input ${inputAttrs('reg-name')} placeholder="e.g. Maria Santos" value="${draft('reg-name')}">`)}
+                <div class="grid grid-cols-2 gap-x-3">
+                  ${field('reg-email', 'Email', `<input ${inputAttrs('reg-email')} type="email" autocomplete="email" placeholder="maria@onewallet.ph" value="${draft('reg-email')}">`)}
+                  ${field('reg-pwd', 'Password', `<input ${inputAttrs('reg-pwd')} type="password" autocomplete="new-password" placeholder="Min. 6 chars" value="${draft('reg-pwd')}">`)}
+                </div>
+                <div class="grid grid-cols-2 gap-x-3">
+                  ${field('reg-payday', 'Payday cycle', `
+                    <select id="reg-payday" class="${C.input}">
+                      <option value="bimonthly">15th & 30th</option>
+                      <option value="monthly-15">Every 15th</option>
+                      <option value="monthly-30">Every 30th</option>
+                    </select>`)}
+                  ${field('reg-preset', 'Starting setup', `
+                    <select id="reg-preset" class="${C.input}">
+                      <option value="starter">4 PH Wallets (₱0)</option>
+                      <option value="demo">Sample Demo Data</option>
+                      <option value="blank">Blank Workspace</option>
+                    </select>`)}
+                </div>
+                <button type="button" class="${C.btn} w-full mt-1" ${busyAttr} onclick="handleSignUp()">${S.authBusy ? 'Creating encrypted account…' : 'Create encrypted account'}</button>
+              `}
+            </div>
           </div>
 
           ${savedAccs.length > 0 ? `
             <div class="mt-4 pt-3 border-t border-line">
               <p class="text-xs font-medium text-mute mb-2">Accounts on this device (${savedAccs.length})</p>
-              <div class="flex flex-wrap gap-1.5">
-                ${savedAccs.map(a => `<button type="button" class="h-7 px-2.5 rounded-full text-xs font-medium border border-line bg-card hover:border-ink/40 cursor-pointer" onclick="prefillSavedAccount('${esc(a.email)}')">${esc(a.fullName)} · ${esc(a.email)}</button>`).join('')}
+              <div class="flex flex-wrap gap-2">
+                ${savedAccs.map(a => `<button type="button" class="h-8 px-3 touch-pill rounded-full text-xs font-medium border border-line bg-card hover:border-ink/40 cursor-pointer" onclick="prefillSavedAccount('${esc(a.email)}')">${esc(a.fullName)} · ${esc(a.email)}</button>`).join('')}
               </div>
             </div>` : ''}
         </div>
@@ -1229,7 +1277,7 @@ const V = {
 
   ledger: () => {
     const list = S.t.filter(t => !S.fw || t.w == S.fw);
-    const chip = (id, label) => `<button type="button" role="radio" aria-checked="${S.fw == id}" class="h-8 px-3.5 rounded-full text-xs font-medium border cursor-pointer ${S.fw == id ? 'bg-ink text-card border-ink' : 'bg-card text-ink-2 border-line hover:border-ink/40 hover:text-ink'}" onclick="S.fw=${id};R()">${label}</button>`;
+    const chip = (id, label) => `<button type="button" role="radio" aria-checked="${S.fw == id}" tabindex="${S.fw == id ? '0' : '-1'}" data-fw="${id}" class="h-9 px-3.5 touch-pill rounded-full text-xs font-medium border cursor-pointer ${S.fw == id ? 'bg-ink text-card border-ink' : 'bg-card text-ink-2 border-line hover:border-ink/40 hover:text-ink'}" onclick="S.fw=${id};R()">${label}</button>`;
     return `
       ${pageHead('Ledger', `${S.t.length} recorded entries`, `<button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-4 h-4', 16)}Add entry</button>`)}
       <div role="radiogroup" aria-label="Filter by wallet" class="flex flex-wrap gap-2 mb-4">${chip(0, 'All wallets')}${S.w.map(w => chip(w.id, esc(w.n))).join('')}</div>
@@ -1248,7 +1296,7 @@ const V = {
         <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
           <button type="button" class="${C.btn}" onclick="readAlert()">Read alert</button>
           <div class="flex flex-wrap items-center gap-2"><span class="${C.meta}">Try a sample:</span>
-            ${['GCash', 'Maya', 'GoTyme'].map((n, i) => `<button type="button" class="h-7 px-3 rounded-full text-xs font-medium border border-line bg-subtle/60 hover:border-ink/40 cursor-pointer" onclick="fillSample(${i})">${n}</button>`).join('')}
+            ${['GCash', 'Maya', 'GoTyme'].map((n, i) => `<button type="button" class="h-8 px-3 touch-pill rounded-full text-xs font-medium border border-line bg-subtle/60 hover:border-ink/40 cursor-pointer" onclick="fillSample(${i})">${n}</button>`).join('')}
           </div>
         </div>
       </section>
@@ -1276,7 +1324,7 @@ const V = {
         ${S.b.map(b => `<li class="flex items-center gap-3 px-5 py-3.5">
           <span class="flex-1 min-w-0"><span class="block text-sm font-semibold text-ink">${esc(b.n)}</span><span class="block ${C.meta}">Due ${esc(b.d)}</span></span>
           <span class="tnum text-sm font-semibold text-ink">${peso(b.a)}</span>
-          <button type="button" class="${C.btn2} h-8 px-3 text-xs" onclick="openModal('payBill', ${b.id})">${icon(I.check, 'w-3.5 h-3.5', 14)}Pay bill</button>
+          <button type="button" class="${C.btn2} h-9 px-3 touch-pill text-xs" onclick="openModal('payBill', ${b.id})">${icon(I.check, 'w-3.5 h-3.5', 14)}Pay bill</button>
           <button type="button" class="${C.iconBtn}" onclick="openModal('bill', ${b.id})" aria-label="Edit ${esc(b.n)}">${icon(I.edit, 'w-4 h-4', 16)}</button>
           <button type="button" class="${C.iconBtn} -mr-1.5" onclick="delBill(${b.id})" aria-label="Remove ${esc(b.n)}">${icon(I.trash, 'w-4 h-4', 16)}</button>
         </li>`).join('') || `<li class="p-8 text-center ${C.meta}">No bills set aside. Add rent, Wi-Fi or subscriptions so your daily amount stays honest.</li>`}
@@ -1399,16 +1447,36 @@ const navLink = ([k, l]) => {
     ${on ? '<span class="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-ink" aria-hidden="true"></span>' : ''}${l}</a>`;
 };
 
+function renderModal() {
+  const modalRoot = document.getElementById('modal-root');
+  if (!modalRoot) return;
+  modalRoot.innerHTML = S.modal ? `
+    <div class="fixed inset-0 z-50 bg-ink/40 flex items-end sm:items-center justify-center sm:p-4" onclick="if(event.target===this)closeModal()">
+      <div role="dialog" aria-modal="true" aria-labelledby="modal-title" class="dialog-in w-full sm:w-[500px] max-h-[90dvh] overflow-y-auto bg-card border border-line rounded-t-card sm:rounded-card p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        ${M[S.modal]()}
+      </div>
+    </div>` : '';
+  if (S.modal) {
+    const firstErr = modalRoot.querySelector('[aria-invalid="true"]');
+    (firstErr || modalRoot.querySelector('[data-autofocus]') || modalRoot.querySelector('[role="dialog"] button'))?.focus();
+  }
+}
+
 function R() {
   if (S.view !== 'login') persistActiveAccount();
-  const app = document.getElementById('app');
-  if (S.view === 'login') { app.innerHTML = V.login(); document.title = 'Sign in · One Wallet'; return; }
+  const shell = document.getElementById('shell-root') || document.getElementById('app');
+  if (S.view === 'login') {
+    shell.innerHTML = V.login();
+    document.title = 'Sign in · One Wallet';
+    renderModal();
+    return;
+  }
 
   const label = [...NAV, ...NAV2, ['more', 'More']].find(n => n[0] === S.view)?.[1] ?? 'One Wallet';
   document.title = `${label} · One Wallet`;
   const pdShort = shortDate(getPayday().slice(5));
 
-  app.innerHTML = `
+  shell.innerHTML = `
     <div class="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
       <aside class="max-md:hidden sticky top-0 h-dvh flex flex-col bg-card border-r border-line">
         <a href="#today" class="flex items-center gap-2.5 px-6 pt-6 pb-5">
@@ -1445,23 +1513,29 @@ function R() {
           <span class="relative">${icon(ic, 'w-5 h-5', 20)}${on ? '<span class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3.5 h-[2px] rounded-full bg-ink" aria-hidden="true"></span>' : ''}</span>
           <span class="mt-1">${l}</span></a>`;
       }).join('')}
-    </nav>
+    </nav>`;
 
-    ${S.modal ? `
-      <div class="fixed inset-0 z-50 bg-ink/40 flex items-end sm:items-center justify-center sm:p-4" onclick="if(event.target===this)closeModal()">
-        <div role="dialog" aria-modal="true" aria-labelledby="modal-title" class="dialog-in w-full sm:w-[500px] max-h-[90dvh] overflow-y-auto bg-card border border-line rounded-t-card sm:rounded-card p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-          ${M[S.modal]()}
-        </div>
-      </div>` : ''}`;
-
-  if (S.modal) {
-    const firstErr = document.querySelector('[aria-invalid="true"]');
-    (firstErr || document.querySelector('[data-autofocus]') || document.querySelector('[role="dialog"] button'))?.focus();
-  }
+  renderModal();
 }
 
-/* Keep focus inside an open dialog; Escape closes it. */
+/* Keyboard navigation: roving ArrowLeft/ArrowRight on tablists & radiogroups, plus modal focus trap & Escape. */
 window.addEventListener('keydown', e => {
+  if (!S.modal && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+    const group = e.target.closest('[role="tablist"], [role="radiogroup"]');
+    if (group) {
+      const role = group.getAttribute('role') === 'tablist' ? '[role="tab"]' : '[role="radio"]';
+      const items = [...group.querySelectorAll(role)];
+      const idx = items.indexOf(e.target);
+      if (idx !== -1 && items.length > 1) {
+        e.preventDefault();
+        const nextIdx = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (idx + (e.key === 'ArrowRight' ? 1 : -1) + items.length) % items.length;
+        items[nextIdx].click();
+        const updatedGroup = document.querySelector(`[role="${group.getAttribute('role')}"]`);
+        updatedGroup?.querySelectorAll(role)?.[nextIdx]?.focus();
+        return;
+      }
+    }
+  }
   if (!S.modal) return;
   if (e.key === 'Escape') { closeModal(); return; }
   if (e.key === 'Enter' && e.target.matches('[role="dialog"] input')) { e.preventDefault(); document.querySelector('[role="dialog"] .flex-wrap.items-center.justify-end button:last-child')?.click(); return; }
@@ -1487,8 +1561,7 @@ function route() {
   if (changed) window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
-bootSession();
-route();
+bootSession().finally(route);
 </script>
 </body>
 </html>

@@ -24,17 +24,61 @@
 }
 
 @layer base {
-  html { -webkit-text-size-adjust: 100%; }
-  body { font-feature-settings: "tnum" 0; background-color: var(--color-paper); color: var(--color-ink); }
-  ::selection { background: #DBEAFE; color: var(--color-ink); }
-  :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
-  .tnum { font-variant-numeric: tabular-nums; }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-underline-offset: 4px;
+    scrollbar-color: #CBD5E1 var(--color-paper);
+  }
+  body {
+    font-feature-settings: "tnum" 0;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    caret-color: var(--color-accent);
+  }
+  ::selection {
+    background: #DBEAFE;
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Intentional reduced-motion alternative: remove spatial scale/translate movement
+     while keeping brief opacity and color transitions so state changes remain legible. */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    .dialog-in {
+      animation: dialog-fade 120ms ease-out;
+    }
+    button:active, a:active {
+      transform: none !important;
+    }
   }
 }
 
 @layer components {
-  .dialog-in { animation: dialog-in 160ms cubic-bezier(0.23, 1, 0.32, 1); }
-  @keyframes dialog-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+  .dialog-in {
+    animation: dialog-in 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @keyframes dialog-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes dialog-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  /* Expand secondary touch targets to 44x44px on coarse pointers (touch devices) */
+  @media (pointer: coarse) {
+    .touch-target {
+      min-width: 44px;
+      min-height: 44px;
+    }
+    .touch-pill {
+      min-height: 40px;
+      padding-inline: 14px;
+    }
+  }
 }
