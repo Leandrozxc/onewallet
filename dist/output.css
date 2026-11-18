@@ -37,7 +37,7 @@
     --color-ink: #0F172A;
     --color-ink-2: #334155;
     --color-mute: #475569;
-    --color-accent: #1D5FBF;
+    --color-accent: #15803D;
     --color-marigold: #D97706;
     --color-gain: #15803D;
     --color-alert: #B91C1C;
@@ -218,6 +218,9 @@
   .top-0 {
     top: 0px;
   }
+  .top-1\.5 {
+    top: calc(var(--spacing) * 1.5);
+  }
   .right-1\.5 {
     right: calc(var(--spacing) * 1.5);
   }
@@ -226,6 +229,12 @@
   }
   .bottom-0 {
     bottom: 0px;
+  }
+  .bottom-1\.5 {
+    bottom: calc(var(--spacing) * 1.5);
+  }
+  .left-0 {
+    left: 0px;
   }
   .left-1\.5 {
     left: calc(var(--spacing) * 1.5);
@@ -365,9 +374,6 @@
   .h-2\.5 {
     height: calc(var(--spacing) * 2.5);
   }
-  .h-3 {
-    height: calc(var(--spacing) * 3);
-  }
   .h-3\.5 {
     height: calc(var(--spacing) * 3.5);
   }
@@ -451,6 +457,9 @@
   }
   .w-16 {
     width: calc(var(--spacing) * 16);
+  }
+  .w-\[3px\] {
+    width: 3px;
   }
   .w-\[256px\] {
     width: 256px;
@@ -675,9 +684,9 @@
     border-top-left-radius: var(--radius-card);
     border-top-right-radius: var(--radius-card);
   }
-  .rounded-l-full {
-    border-top-left-radius: calc(infinity * 1px);
-    border-bottom-left-radius: calc(infinity * 1px);
+  .rounded-r-full {
+    border-top-right-radius: calc(infinity * 1px);
+    border-bottom-right-radius: calc(infinity * 1px);
   }
   .border {
     border-style: var(--tw-border-style);
@@ -694,6 +703,10 @@
   .border-b {
     border-bottom-style: var(--tw-border-style);
     border-bottom-width: 1px;
+  }
+  .border-l-\[3px\] {
+    border-left-style: var(--tw-border-style);
+    border-left-width: 3px;
   }
   .\!border-alert\/50 {
     border-color: color-mix(in srgb, #B91C1C 50%, transparent) !important;
@@ -739,6 +752,9 @@
     @supports (color: color-mix(in lab, red, red)) {
       border-color: color-mix(in oklab, var(--color-white) 45%, transparent);
     }
+  }
+  .border-l-gain {
+    border-left-color: var(--color-gain);
   }
   .bg-\[\#090D16\] {
     background-color: #090D16;
@@ -981,9 +997,9 @@
   .text-\[38px\] {
     font-size: 38px;
   }
-  .leading-\[1\.08\] {
-    --tw-leading: 1.08;
-    line-height: 1.08;
+  .leading-\[1\.06\] {
+    --tw-leading: 1.06;
+    line-height: 1.06;
   }
   .leading-none {
     --tw-leading: 1;
@@ -1029,13 +1045,13 @@
     --tw-tracking: -0.02em;
     letter-spacing: -0.02em;
   }
+  .tracking-\[-0\.03em\] {
+    --tw-tracking: -0.03em;
+    letter-spacing: -0.03em;
+  }
   .tracking-\[-0\.015em\] {
     --tw-tracking: -0.015em;
     letter-spacing: -0.015em;
-  }
-  .tracking-\[-0\.025em\] {
-    --tw-tracking: -0.025em;
-    letter-spacing: -0.025em;
   }
   .tracking-\[0\.02em\] {
     --tw-tracking: 0.02em;
