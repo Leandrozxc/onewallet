@@ -1,4 +1,4 @@
-# One Wallet
+# <img src="assets/logo.png" alt="One Wallet Logo" width="38"> One Wallet
 
 [![Deploy to GitHub Pages](https://github.com/Leandrozxc/onewallet/actions/workflows/deploy.yml/badge.svg)](https://github.com/Leandrozxc/onewallet/actions/workflows/deploy.yml)
 [![Live Demo](https://img.shields.io/badge/demo-live%20site-teal?style=flat-square)](https://leandrozxc.github.io/onewallet/)

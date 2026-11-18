@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#F6F7F9">
   <title>One Wallet</title>
-  <link rel="icon" type="image/png" href="./assets/favicon.png">
+  <link rel="icon" type="image/png" href="./assets/favicon.png?v=20261118b">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="./dist/output.css?v=20261115c" rel="stylesheet">
+  <link href="./dist/output.css?v=20261118b" rel="stylesheet">
   <style>
     /* Critical fallback tokens & shell rules so cached/delayed CSS never breaks layout or icon sizing */
     :root {
@@ -74,7 +74,7 @@ const formatCardNum = (w, show) => {
 
 /* ---------- Icons & Brand Mark ---------- */
 const icon = (d, cls = 'w-5 h-5', sz = 18) => `<svg width="${sz}" height="${sz}" class="${cls} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-const brandLogo = (cls = 'h-6 w-auto', h = 24) => `<img src="./assets/logo.png" width="${Math.round(h * 161 / 110)}" height="${h}" alt="" class="${cls} object-contain shrink-0" aria-hidden="true">`;
+const brandLogo = (cls = 'h-7 w-auto', h = 28) => `<img src="./assets/logo.png?v=20261118b" width="${Math.round(h * 161 / 110)}" height="${h}" alt="" class="${cls} object-contain shrink-0" aria-hidden="true">`;
 const I = {
   today: '<path d="M4 5h16v15H4z"/><path d="M4 9h16M9 3v4M15 3v4"/>',
   ledger: '<path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
@@ -130,7 +130,7 @@ const netBadgeSvg = (net, light = false) => {
   if (net === 'mc') return `<svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden="true"><circle cx="14" cy="11" r="8.5" fill="#EB001B" fill-opacity="0.9"/><circle cx="22" cy="11" r="8.5" fill="#F79E1B" fill-opacity="0.9"/></svg>`;
   if (net === 'jcb') return `<svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden="true"><rect x="3" y="3" width="9" height="16" rx="2.5" fill="#0066B2"/><rect x="13.5" y="3" width="9" height="16" rx="2.5" fill="#C82347"/><rect x="24" y="3" width="9" height="16" rx="2.5" fill="#15803D"/></svg>`;
   if (net === 'visa') return `<svg width="38" height="22" viewBox="0 0 38 22" fill="none" aria-hidden="true"><rect x="1" y="2" width="36" height="18" rx="3" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-opacity="0.35"/><path d="M8 7l2.5 8L13 7M16 7v8M24 7.5c-1-.4-2.5-.3-2.5 1 0 1.8 3 1.4 3 3.5 0 1.6-1.8 2.2-3.2 1.7M27.5 15L30 7l2.5 8M28.3 12.5h3.4" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  return `<svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden="true"><rect x="2" y="3" width="32" height="16" rx="3" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-opacity="0.45"/><circle cx="18" cy="11" r="4" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-width="1.4"/></svg>`;
+  return `<img src="./assets/logo.png?v=20261118b" width="29" height="20" alt="" class="h-5 w-auto object-contain shrink-0 ${light ? 'opacity-85' : 'brightness-0 invert opacity-90'}" aria-hidden="true">`;
 };
 
 const motifSvg = st => {
@@ -1042,7 +1042,7 @@ const V = {
         <div class="w-full max-w-[440px]">
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-2.5">
-              ${brandLogo('h-6 w-auto', 24)}
+              ${brandLogo('h-7 w-auto', 28)}
               <span class="text-base font-semibold tracking-[-0.01em]">One Wallet</span>
             </div>
             <button type="button" class="${C.link} text-xs inline-flex items-center gap-1 touch-pill" onclick="openModal('supabase')">
@@ -1482,7 +1482,7 @@ function R() {
     <div class="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
       <aside class="max-md:hidden sticky top-0 h-dvh flex flex-col bg-card border-r border-line">
         <a href="#today" class="flex items-center gap-2.5 px-6 pt-6 pb-5">
-          ${brandLogo('h-6 w-auto', 24)}
+          ${brandLogo('h-7 w-auto', 28)}
           <span class="text-base font-semibold tracking-[-0.01em]">One Wallet</span>
         </a>
         <nav aria-label="Main" class="flex flex-col gap-0.5">${NAV.map(navLink).join('')}</nav>
@@ -1501,7 +1501,7 @@ function R() {
 
       <div class="min-w-0">
         <header class="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b border-line">
-          <span class="flex items-center gap-2">${brandLogo('h-5 w-auto', 20)}<span class="text-sm font-semibold">One Wallet</span></span>
+          <span class="flex items-center gap-2">${brandLogo('h-6 w-auto', 24)}<span class="text-sm font-semibold">One Wallet</span></span>
           <button type="button" class="${C.meta} hover:text-ink cursor-pointer" onclick="openModal('payday')">Payday ${pdShort}</button>
         </header>
         <main id="main" class="w-full max-w-[1208px] mx-auto px-4 pt-5 pb-28 md:px-8 md:pt-7 md:pb-12">${V[S.view]()}</main>
