@@ -30,9 +30,9 @@
     svg { display: inline-block; vertical-align: middle; flex-shrink: 0; }
     .tnum { font-variant-numeric: tabular-nums; }
     .card-stage { perspective: 1400px; touch-action: pan-y; }
-    .card-stage-box { min-height: 230px; }
-    @media (min-width: 640px) { .card-stage-box { min-height: 290px; } }
-    @media (min-width: 768px) { .card-stage-box { min-height: 310px; } }
+    .card-stage-box { min-height: 215px; }
+    @media (min-width: 640px) { .card-stage-box { min-height: 268px; } }
+    @media (min-width: 768px) { .card-stage-box { min-height: 282px; } }
     .card-slot { transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1); transform-style: preserve-3d; will-change: transform, opacity; }
     .card-flipper { position: relative; width: 100%; aspect-ratio: 1.586 / 1; transform-style: preserve-3d; transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1); will-change: transform; }
     .card-flipper.is-tilting:not(.is-flipped) { transition: transform 120ms ease-out; }
@@ -1308,27 +1308,81 @@ function renderFlippableCard(w, { revealed = false, flipped = false, active = tr
 function renderCarouselSummary(activeW) {
   if (!activeW) return '';
   const tot = total();
+  const st = getCardStyle(activeW.style);
   const activeRev = !!S.revealed[activeW.id];
   const activeFlp = !!S.flipped[activeW.id];
-  const activeCount = S.t.filter(t => t.w == activeW.id).length;
+  const cardTxs = S.t.filter(t => t.w == activeW.id);
+  const activeCount = cardTxs.length;
   const activeShare = tot > 0 ? Math.round(Math.max(0, activeW.b) / tot * 100) : 0;
-  return `<article class="${C.card} p-5">
-    <div class="flex flex-wrap items-baseline justify-between gap-2 pb-3 mb-3 border-b border-line">
+  const recentTxs = cardTxs.slice(0, 4);
+  return `<div class="grid gap-4 lg:grid-cols-[1.05fr_1.15fr] items-stretch">
+    <article class="${C.card} p-5 flex flex-col justify-between gap-4">
       <div>
-        <span class="text-base font-semibold text-ink">${esc(activeW.n)}</span>
-        <span class="text-[13px] text-mute ml-1.5">· ${activeCount} entr${activeCount === 1 ? 'y' : 'ies'} (${activeShare}% of balance)</span>
+        <div class="flex items-start justify-between gap-3 pb-3 border-b border-line">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span data-ui class="w-5 h-3.5 rounded-[3px] shrink-0 inline-block" style="background-color:${st.bg}"></span>
+              <h2 class="text-base font-semibold text-ink truncate">${esc(activeW.n)}</h2>
+              <span class="tnum text-xs text-mute">••${esc(activeW.last4 || '4821')}</span>
+            </div>
+            <p class="text-[13px] text-mute mt-0.5">${esc(st.name)} · ${activeCount} entr${activeCount === 1 ? 'y' : 'ies'} · ${activeShare}% of total balance</p>
+          </div>
+          <span class="tnum text-[24px] leading-none font-semibold text-ink shrink-0">${peso(activeW.b)}</span>
+        </div>
+
+        <div class="mt-3">
+          <div class="flex justify-between text-xs text-mute mb-1.5 tnum">
+            <span>Share of ${peso(tot)} total</span>
+            <span class="font-medium text-ink">${activeShare}%</span>
+          </div>
+          <div class="h-1.5 rounded-full bg-track overflow-hidden">
+            <span class="block h-full rounded-full bg-ink transition-[width] duration-200" style="width:${activeShare}%"></span>
+          </div>
+        </div>
+
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 pt-3 border-t border-line text-xs">
+          <div class="flex justify-between gap-2"><dt class="text-mute">Network</dt><dd class="font-medium text-ink">${esc(st.net)}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-mute">Security</dt><dd class="font-medium text-ink">AES-256-GCM</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-mute">Cardholder</dt><dd class="font-medium text-ink truncate">${activeRev ? esc(activeW.holder || S.fullName) : 'Masked'}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-mute">Valid thru</dt><dd class="tnum font-medium text-ink">${activeRev ? esc(activeW.exp || '08/29') : '••/••'}</dd></div>
+        </dl>
       </div>
-      <span class="tnum text-[24px] font-semibold text-ink">${peso(activeW.b)}</span>
-    </div>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-3">
-        <button type="button" data-flip-btn="${activeW.id}" class="${C.btn2}" onclick="toggleFlip(${activeW.id})">${activeFlp ? 'Show front' : 'Spin card 180°'}</button>
-        <button type="button" class="${C.btn2}" onclick="toggleReveal(${activeW.id})">${icon(activeRev ? I.eyeOff : I.eye, 'w-4 h-4', 16)}${activeRev ? 'Hide info' : 'Check card info'}</button>
-        <button type="button" class="${C.link} text-sm" onclick="openModal('wallet', ${activeW.id})">Card style</button>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-line">
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" data-flip-btn="${activeW.id}" class="${C.btn2}" onclick="toggleFlip(${activeW.id})">${activeFlp ? 'Show front' : 'Spin card 180°'}</button>
+          <button type="button" class="${C.btn2}" onclick="toggleReveal(${activeW.id})">${icon(activeRev ? I.eyeOff : I.eye, 'w-4 h-4', 16)}${activeRev ? 'Hide info' : 'Check card info'}</button>
+          <button type="button" class="${C.link} text-sm px-1" onclick="openModal('wallet', ${activeW.id})">Card style</button>
+        </div>
+        <button type="button" class="${C.btn}" onclick="openWallet(${activeW.id})">Open ledger${icon(I.chevron, 'w-4 h-4', 16)}</button>
       </div>
-      <button type="button" class="${C.btn}" onclick="openWallet(${activeW.id})">Open ledger${icon(I.chevron, 'w-4 h-4', 16)}</button>
-    </div>
-  </article>`;
+    </article>
+
+    <section class="${C.card} p-5 flex flex-col justify-between" aria-label="Recent activity for ${esc(activeW.n)}">
+      <div>
+        <div class="flex items-center justify-between gap-2 pb-3 border-b border-line">
+          <h3 class="${C.cardTitle}">Recent ${esc(activeW.n)} activity</h3>
+          <button type="button" class="${C.link} text-xs inline-flex items-center gap-1" onclick="openModal('tx')">${icon(I.plus, 'w-3.5 h-3.5', 14)}Add entry</button>
+        </div>
+        ${recentTxs.length ? `<ul class="divide-y divide-line/60 mt-1">
+          ${recentTxs.map(t => `<li class="flex items-center justify-between gap-3 py-2.5 text-sm">
+            <div class="min-w-0">
+              <p class="font-medium text-ink truncate">${esc(t.s)}</p>
+              <p class="${C.meta} truncate">${esc(t.c)} · ${shortDate(t.d)}</p>
+            </div>
+            <span class="tnum font-semibold whitespace-nowrap ${t.a > 0 ? 'text-gain' : 'text-ink'}">${signed(t.a)}</span>
+          </li>`).join('')}
+        </ul>` : `<div class="py-8 text-center">
+          <p class="${C.meta} mb-3">No recorded entries on ${esc(activeW.n)} yet.</p>
+          <button type="button" class="${C.btn2}" onclick="openModal('tx')">${icon(I.plus, 'w-4 h-4', 16)}Record first entry</button>
+        </div>`}
+      </div>
+      <div class="flex items-center justify-between pt-3 mt-2 border-t border-line text-xs text-mute">
+        <span>Showing ${recentTxs.length} of ${activeCount} entr${activeCount === 1 ? 'y' : 'ies'}</span>
+        <button type="button" class="${C.link} text-xs" onclick="openWallet(${activeW.id})">View full ${esc(activeW.n)} ledger →</button>
+      </div>
+    </section>
+  </div>`;
 }
 
 function txRow(t, deletable) {
@@ -1765,7 +1819,7 @@ const V = {
 
       ${!len ? `<div class="${C.card} p-8 text-center ${C.meta}">Add your first wallet or card to start.</div>` : !isGrid ? `
         <section class="mb-5" aria-label="3D Card Carousel" tabindex="0" onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();spinCard(-1)}else if(event.key==='ArrowRight'){event.preventDefault();spinCard(1)}">
-          <div class="card-stage card-stage-box relative h-[230px] sm:h-[290px] md:h-[310px] flex items-center justify-center overflow-hidden select-none rounded-card bg-paper border border-line"
+          <div class="card-stage card-stage-box relative h-[215px] sm:h-[268px] md:h-[282px] flex items-center justify-center overflow-hidden select-none rounded-card bg-paper border border-line"
             onpointerdown="carouselDown(event)" onpointermove="carouselMove(event)" onpointerup="carouselUp(event)" onpointercancel="carouselCancel(event)" onlostpointercapture="carouselCancel(event)">
             ${S.w.map((cw, i) => {
               let diff = i - activeIdx;
@@ -1832,10 +1886,20 @@ const V = {
 
   ledger: () => {
     const list = S.t.filter(t => !S.fw || t.w == S.fw);
+    const lIn = list.filter(t => t.a > 0 && t.s !== 'Balance correction').reduce((s, t) => s + t.a, 0);
+    const lOut = list.filter(t => t.a < 0 && t.s !== 'Balance correction').reduce((s, t) => s - t.a, 0);
+    const lNet = lIn - lOut;
     const chip = (id, label) => `<button type="button" role="radio" aria-checked="${S.fw == id}" tabindex="${S.fw == id ? '0' : '-1'}" data-fw="${id}" class="h-9 px-3.5 touch-pill rounded-full text-xs font-medium border cursor-pointer ${S.fw == id ? 'bg-ink text-card border-ink' : 'bg-card text-ink-2 border-line hover:border-ink/40 hover:text-ink'}" onclick="S.fw=${id};R()">${label}</button>`;
     return `
       ${pageHead('Ledger', `${S.t.length} recorded entries`, `<button type="button" class="${C.btn}" onclick="openModal('tx')">${icon(I.plus, 'w-4 h-4', 16)}Add entry</button>`)}
-      <div role="radiogroup" aria-label="Filter by wallet" class="flex flex-wrap gap-2 mb-4">${chip(0, 'All wallets')}${S.w.map(w => chip(w.id, esc(w.n))).join('')}</div>
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div role="radiogroup" aria-label="Filter by wallet" class="flex flex-wrap gap-2">${chip(0, 'All wallets')}${S.w.map(w => chip(w.id, esc(w.n))).join('')}</div>
+        <div class="tnum text-xs flex items-center gap-3 text-mute">
+          <span>In <strong class="text-gain font-semibold">+${peso(lIn)}</strong></span>
+          <span>Out <strong class="text-ink font-semibold">−${peso(lOut)}</strong></span>
+          <span>Net <strong class="font-semibold ${lNet >= 0 ? 'text-gain' : 'text-ink'}">${signed(lNet)}</strong></span>
+        </div>
+      </div>
       <section class="${C.card} p-5">
         ${ledgerList(list, { deletable: true, empty: S.fw ? 'No entries for this wallet.' : 'No entries yet. Add one or import an alert.' })}
       </section>`;
@@ -1872,30 +1936,64 @@ const V = {
         </section>` : ''}`;
   },
 
-  bills: () => `
-    ${pageHead('Bills', `${peso(reserved())} set aside until ${shortDate(getPayday().slice(5))}`, `<button type="button" class="${C.btn}" onclick="openModal('bill')">${icon(I.plus, 'w-4 h-4', 16)}Set aside a bill</button>`)}
-    <section class="${C.card}">
-      <ul class="divide-y divide-line">
-        ${S.b.map(b => `<li class="flex items-center gap-3 px-5 py-3.5">
-          <span class="flex-1 min-w-0"><span class="block text-sm font-semibold text-ink">${esc(b.n)}</span><span class="block ${C.meta}">Due ${esc(b.d)}</span></span>
-          <span class="tnum text-sm font-semibold text-ink">${peso(b.a)}</span>
-          <button type="button" class="${C.btn2} h-9 px-3 touch-pill text-xs" onclick="openModal('payBill', ${b.id})">${icon(I.check, 'w-3.5 h-3.5', 14)}Pay bill</button>
-          <button type="button" class="${C.iconBtn}" onclick="openModal('bill', ${b.id})" aria-label="Edit ${esc(b.n)}">${icon(I.edit, 'w-4 h-4', 16)}</button>
-          <button type="button" class="${C.iconBtn} -mr-1.5" onclick="delBill(${b.id})" aria-label="Remove ${esc(b.n)}">${icon(I.trash, 'w-4 h-4', 16)}</button>
-        </li>`).join('') || `<li class="p-8 text-center ${C.meta}">No bills set aside. Add rent, Wi-Fi or subscriptions so your daily amount stays honest.</li>`}
-      </ul>
-      ${S.b.length ? `<div class="flex justify-between px-5 py-3.5 border-t border-line text-sm font-semibold"><span>Total set aside</span><span class="tnum">${peso(reserved())}</span></div>` : ''}
-    </section>`,
+  bills: () => {
+    const tot = total(), res = reserved(), fr = free(), dl = daysLeft();
+    const resPct = tot > 0 ? Math.min(100, Math.round(res / tot * 100)) : 0;
+    const pdShort = shortDate(getPayday().slice(5));
+    return `
+    ${pageHead('Bills', `${peso(res)} set aside until ${pdShort}`, `<button type="button" class="${C.btn}" onclick="openModal('bill')">${icon(I.plus, 'w-4 h-4', 16)}Set aside a bill</button>`)}
+    <div class="grid gap-4 lg:grid-cols-[1.45fr_1fr] items-start">
+      <section class="${C.card}">
+        <ul class="divide-y divide-line">
+          ${S.b.map(b => `<li class="flex items-center gap-3 px-5 py-3.5">
+            <span class="flex-1 min-w-0"><span class="block text-sm font-semibold text-ink">${esc(b.n)}</span><span class="block ${C.meta}">Due ${esc(b.d)}</span></span>
+            <span class="tnum text-sm font-semibold text-ink">${peso(b.a)}</span>
+            <button type="button" class="${C.btn2} h-9 px-3 touch-pill text-xs" onclick="openModal('payBill', ${b.id})">${icon(I.check, 'w-3.5 h-3.5', 14)}Pay bill</button>
+            <button type="button" class="${C.iconBtn}" onclick="openModal('bill', ${b.id})" aria-label="Edit ${esc(b.n)}">${icon(I.edit, 'w-4 h-4', 16)}</button>
+            <button type="button" class="${C.iconBtn} -mr-1.5" onclick="delBill(${b.id})" aria-label="Remove ${esc(b.n)}">${icon(I.trash, 'w-4 h-4', 16)}</button>
+          </li>`).join('') || `<li class="p-8 text-center ${C.meta}">No bills set aside. Add rent, Wi-Fi or subscriptions so your daily amount stays honest.</li>`}
+        </ul>
+        ${S.b.length ? `<div class="flex justify-between px-5 py-3.5 border-t border-line text-sm font-semibold"><span>Total set aside</span><span class="tnum">${peso(res)}</span></div>` : ''}
+      </section>
+
+      <aside class="${C.card} p-5 space-y-4">
+        ${cardHead('Payday coverage', `${dl}d left`)}
+        <div>
+          <div class="flex justify-between text-xs text-mute mb-1.5 tnum">
+            <span>Reserved for ${S.b.length} bill${S.b.length === 1 ? '' : 's'}</span>
+            <span class="font-semibold text-ink">${resPct}% of total</span>
+          </div>
+          <div class="h-2 rounded-full bg-track overflow-hidden">
+            <span class="block h-full rounded-full bg-marigold" style="width:${resPct}%"></span>
+          </div>
+        </div>
+        <dl class="tnum text-sm space-y-2.5 pt-2 border-t border-line">
+          <div class="flex justify-between"><dt class="text-ink-2">Total wallet balance</dt><dd class="font-medium text-ink">${peso(tot)}</dd></div>
+          <div class="flex justify-between"><dt class="text-ink-2">Reserved for bills</dt><dd class="font-medium text-marigold">− ${peso(res)}</dd></div>
+          <div class="flex justify-between pt-2 border-t border-line font-semibold text-ink"><dt>Free until ${pdShort}</dt><dd class="text-gain">${peso(fr)}</dd></div>
+        </dl>
+      </aside>
+    </div>`;
+  },
 
   insights: () => {
     const byCat = {};
     S.t.filter(t => t.a < 0 && t.s !== 'Balance correction').forEach(t => byCat[t.c] = (byCat[t.c] || 0) - t.a);
     const inc = S.t.filter(t => t.a > 0 && t.s !== 'Balance correction').reduce((s, t) => s + t.a, 0);
     const out = Object.values(byCat).reduce((s, v) => s + v, 0);
+    const net = inc - out;
+    const sortedCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+    const topCat = sortedCats[0];
     const max = Math.max(1, ...Object.values(byCat));
     const bar = (pct, cls = 'bg-ink') => `<span class="block h-1.5 rounded-full bg-track overflow-hidden"><span class="block h-full rounded-full ${cls}" style="width:${pct}%"></span></span>`;
     return `
       ${pageHead('Insights', 'Cashflow & category breakdown this period')}
+      <div class="grid gap-3 grid-cols-2 lg:grid-cols-4 mb-4">
+        <div class="${C.card} p-4"><p class="${C.meta}">Net cashflow</p><p class="tnum text-lg font-semibold mt-1 ${net >= 0 ? 'text-gain' : 'text-ink'}">${signed(net)}</p></div>
+        <div class="${C.card} p-4"><p class="${C.meta}">Spend ratio</p><p class="tnum text-lg font-semibold text-ink mt-1">${inc ? Math.round(out / inc * 100) + '%' : '—'}</p></div>
+        <div class="${C.card} p-4"><p class="${C.meta}">Top category</p><p class="text-lg font-semibold text-ink mt-1 truncate">${topCat ? esc(topCat[0]) : '—'}</p></div>
+        <div class="${C.card} p-4"><p class="${C.meta}">Daily safe spend</p><p class="tnum text-lg font-semibold text-ink mt-1">${peso(perDay())}</p></div>
+      </div>
       <div class="grid gap-4 lg:grid-cols-2 items-start">
         <section class="${C.card} p-5">
           ${cardHead('Money in vs out')}
@@ -1908,7 +2006,7 @@ const V = {
         <section class="${C.card} p-5">
           ${cardHead('Spending by category')}
           <ul class="mt-3 space-y-3 tnum text-sm">
-            ${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<li><div class="flex justify-between mb-1.5"><span class="text-ink-2">${esc(k)}</span><span class="font-semibold text-ink">${peso(v)}</span></div>${bar(v / max * 100)}</li>`).join('') || `<li class="${C.meta} py-4">No spending recorded yet.</li>`}
+            ${sortedCats.map(([k, v]) => `<li><div class="flex justify-between mb-1.5"><span class="text-ink-2">${esc(k)}</span><span class="font-semibold text-ink">${peso(v)}</span></div>${bar(v / max * 100)}</li>`).join('') || `<li class="${C.meta} py-4">No spending recorded yet.</li>`}
           </ul>
           <p class="${C.meta} pt-3 mt-4 border-t border-line">Total categorized outflow: <span class="tnum font-semibold text-ink">${peso(out)}</span></p>
         </section>
@@ -2078,7 +2176,7 @@ function R() {
           <a href="#today" class="flex items-center gap-2">${brandLogo('h-6 w-auto', 24)}<span class="text-sm font-semibold text-ink">One Wallet</span></a>
           <button type="button" class="tnum text-xs font-medium px-2.5 py-1 rounded-full bg-subtle text-ink cursor-pointer" onclick="openModal('payday')">Payday ${pdShort} · ${dl}d</button>
         </header>
-        <main id="main" class="flex-1 w-full max-w-[1208px] mx-auto px-4 pt-5 pb-28 md:bg-card md:border md:border-line md:rounded-card md:px-8 md:py-7">${V[S.view]()}</main>
+        <main id="main" class="w-full max-w-[1208px] mx-auto px-4 pt-5 pb-24 md:bg-card md:border md:border-line md:rounded-card md:px-8 md:py-7">${V[S.view]()}</main>
       </div>
     </div>
 
