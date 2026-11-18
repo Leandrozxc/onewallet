@@ -845,6 +845,14 @@ function slotPose(d) {
     zi: 10
   };
 }
+function setSlotPose(slot, d, instant) {
+  const p = slotPose(d);
+  slot.style.transition = instant ? 'none' : '';
+  slot.style.transform = `translate3d(${p.tx.toFixed(2)}%, 0, ${p.tz.toFixed(1)}px) scale(${p.sc.toFixed(3)}) rotateY(${p.ry.toFixed(2)}deg)`;
+  slot.style.opacity = p.op.toFixed(3);
+  slot.style.zIndex = String(p.zi);
+  slot.style.pointerEvents = Math.abs(d) >= 2 && !instant ? 'none' : '';
+}
 function applySlotTransforms(dragProgress = 0, instant = false) {
   const len = S.w.length;
   if (!len) return;
@@ -856,12 +864,27 @@ function applySlotTransforms(dragProgress = 0, instant = false) {
       if (diff > len / 2) diff -= len;
       if (diff < -len / 2) diff += len;
     }
-    const p = slotPose(diff + dragProgress);
-    slot.style.transition = instant ? 'none' : '';
-    slot.style.transform = `translate3d(${p.tx.toFixed(2)}%, 0, ${p.tz.toFixed(1)}px) scale(${p.sc.toFixed(3)}) rotateY(${p.ry.toFixed(2)}deg)`;
-    slot.style.opacity = p.op.toFixed(3);
-    slot.style.zIndex = String(p.zi);
-    slot.style.pointerEvents = Math.abs(diff) >= 2 && !instant ? 'none' : '';
+    if (instant) {
+      if (len % 2 === 0 && Math.abs(diff) === len / 2) {
+        diff = dragProgress < 0 ? len / 2 : -len / 2;
+      }
+      setSlotPose(slot, diff + dragProgress, true);
+      return;
+    }
+    const hasPrev = slot.dataset.lastDiff !== undefined;
+    const prev = hasPrev ? Number(slot.dataset.lastDiff) : diff;
+    let target = diff;
+    if (hasPrev && Math.abs(diff) >= 2 && Math.abs(prev) >= 1 && Math.sign(prev) !== Math.sign(diff)) {
+      // Exit off the same side the card came from instead of flying across the stage
+      target = prev < 0 ? -2 : 2;
+    } else if (hasPrev && Math.abs(diff - prev) > 1.5) {
+      // Card wrapped around the back of the loop: stage it off the incoming edge first
+      const stageDiff = diff >= 0 ? 2 : -2;
+      setSlotPose(slot, stageDiff, true);
+      void slot.offsetWidth;
+    }
+    slot.dataset.lastDiff = String(target);
+    setSlotPose(slot, target, false);
   });
 }
 function syncCarouselInPlace() {
@@ -1753,7 +1776,7 @@ const V = {
               const p = slotPose(diff);
               const abs = Math.abs(diff);
               const isCenter = diff === 0;
-              return `<div data-slot-idx="${i}" class="card-slot absolute w-[256px] sm:w-[400px] md:w-[430px]" style="transform:translate3d(${p.tx}%, 0, ${p.tz}px) scale(${p.sc}) rotateY(${p.ry}deg);opacity:${p.op};z-index:${p.zi};${abs >= 2 ? 'pointer-events:none;' : ''}" ${!isCenter && abs === 1 ? `onclick="if(!cDrag.moved)goCard(${i})"` : ''}>
+              return `<div data-slot-idx="${i}" data-last-diff="${diff}" class="card-slot absolute w-[256px] sm:w-[400px] md:w-[430px]" style="transform:translate3d(${p.tx}%, 0, ${p.tz}px) scale(${p.sc}) rotateY(${p.ry}deg);opacity:${p.op};z-index:${p.zi};${abs >= 2 ? 'pointer-events:none;' : ''}" ${!isCenter && abs === 1 ? `onclick="if(!cDrag.moved)goCard(${i})"` : ''}>
                 ${renderFlippableCard(cw, { revealed: !!S.revealed[cw.id], flipped: !!S.flipped[cw.id], active: isCenter })}
               </div>`;
             }).join('')}
