@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="./dist/output.css?v=20261118b" rel="stylesheet">
+  <link href="./dist/output.css?v=20261118d" rel="stylesheet">
   <style>
     /* Critical fallback tokens & shell rules so cached/delayed CSS never breaks layout or icon sizing */
     :root {
@@ -29,6 +29,15 @@
     body { background-color: #F6F7F9; color: #0F172A; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif; margin: 0; }
     svg { display: inline-block; vertical-align: middle; flex-shrink: 0; }
     .tnum { font-variant-numeric: tabular-nums; }
+    .card-stage { perspective: 1400px; touch-action: pan-y; }
+    .card-stage-box { min-height: 230px; }
+    @media (min-width: 640px) { .card-stage-box { min-height: 290px; } }
+    @media (min-width: 768px) { .card-stage-box { min-height: 310px; } }
+    .card-slot { transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease-out; transform-style: preserve-3d; }
+    .card-flipper { position: relative; width: 100%; aspect-ratio: 1.586 / 1; transform-style: preserve-3d; transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1); }
+    .card-flipper.is-flipped { transform: rotateY(180deg); }
+    .card-face-front, .card-face-back { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .card-face-back { transform: rotateY(180deg); }
   </style>
 </head>
 <body class="bg-paper text-ink font-sans antialiased">
@@ -1582,7 +1591,7 @@ const V = {
 
       ${!len ? `<div class="${C.card} p-8 text-center ${C.meta}">Add your first wallet or card to start.</div>` : !isGrid ? `
         <section class="mb-5" aria-label="3D Card Carousel" tabindex="0" onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();spinCard(-1)}else if(event.key==='ArrowRight'){event.preventDefault();spinCard(1)}">
-          <div class="card-stage relative h-[230px] sm:h-[290px] md:h-[310px] flex items-center justify-center overflow-hidden select-none rounded-card bg-paper border border-line"
+          <div class="card-stage card-stage-box relative h-[230px] sm:h-[290px] md:h-[310px] flex items-center justify-center overflow-hidden select-none rounded-card bg-paper border border-line"
             onpointerdown="carouselDown(event)" onpointermove="carouselMove(event)" onpointerup="carouselUp(event)" onpointercancel="carouselCancel(event)" onlostpointercapture="carouselCancel(event)">
             ${S.w.map((cw, i) => {
               let diff = i - activeIdx;
