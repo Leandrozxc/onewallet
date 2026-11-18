@@ -218,17 +218,26 @@
   .top-0 {
     top: 0px;
   }
+  .right-1\.5 {
+    right: calc(var(--spacing) * 1.5);
+  }
   .-bottom-1 {
     bottom: calc(var(--spacing) * -1);
   }
   .bottom-0 {
     bottom: 0px;
   }
+  .left-1\.5 {
+    left: calc(var(--spacing) * 1.5);
+  }
   .left-1\/2 {
     left: calc(1 / 2 * 100%);
   }
   .z-30 {
     z-index: 30;
+  }
+  .z-40 {
+    z-index: 40;
   }
   .z-50 {
     z-index: 50;
@@ -383,6 +392,9 @@
   .h-\[2px\] {
     height: 2px;
   }
+  .h-\[230px\] {
+    height: 230px;
+  }
   .h-auto {
     height: auto;
   }
@@ -407,6 +419,9 @@
   .w-2 {
     width: calc(var(--spacing) * 2);
   }
+  .w-2\.5 {
+    width: calc(var(--spacing) * 2.5);
+  }
   .w-3\.5 {
     width: calc(var(--spacing) * 3.5);
   }
@@ -419,17 +434,29 @@
   .w-6 {
     width: calc(var(--spacing) * 6);
   }
+  .w-7 {
+    width: calc(var(--spacing) * 7);
+  }
   .w-8 {
     width: calc(var(--spacing) * 8);
   }
   .w-9 {
     width: calc(var(--spacing) * 9);
   }
+  .w-16 {
+    width: calc(var(--spacing) * 16);
+  }
+  .w-\[256px\] {
+    width: 256px;
+  }
   .w-auto {
     width: auto;
   }
   .w-full {
     width: 100%;
+  }
+  .max-w-\[150px\] {
+    max-width: 150px;
   }
   .max-w-\[160px\] {
     max-width: 160px;
@@ -668,6 +695,12 @@
   .border-ink {
     border-color: var(--color-ink);
   }
+  .border-ink\/20 {
+    border-color: color-mix(in srgb, #0F172A 20%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-ink) 20%, transparent);
+    }
+  }
   .border-ink\/40 {
     border-color: color-mix(in srgb, #0F172A 40%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -683,11 +716,20 @@
       border-color: color-mix(in oklab, var(--color-line) 60%, transparent);
     }
   }
+  .border-white\/15 {
+    border-color: color-mix(in srgb, #fff 15%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-white) 15%, transparent);
+    }
+  }
   .border-white\/45 {
     border-color: color-mix(in srgb, #fff 45%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       border-color: color-mix(in oklab, var(--color-white) 45%, transparent);
     }
+  }
+  .bg-\[\#090D16\] {
+    background-color: #090D16;
   }
   .bg-alert {
     background-color: var(--color-alert);
@@ -738,6 +780,12 @@
     background-color: color-mix(in srgb, #fff 15%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-white) 15%, transparent);
+    }
+  }
+  .bg-white\/90 {
+    background-color: color-mix(in srgb, #fff 90%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-white) 90%, transparent);
     }
   }
   .object-contain {
@@ -1032,6 +1080,9 @@
       color: color-mix(in oklab, var(--color-white) 85%, transparent);
     }
   }
+  .italic {
+    font-style: italic;
+  }
   .tabular-nums {
     --tw-numeric-spacing: tabular-nums;
     font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,);
@@ -1056,6 +1107,10 @@
   .ring-ink {
     --tw-ring-color: var(--color-ink);
   }
+  .blur {
+    --tw-blur: blur(8px);
+    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
+  }
   .filter {
     filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
   }
@@ -1071,6 +1126,11 @@
   }
   .transition-\[transform\,opacity\] {
     transition-property: transform,opacity;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .transition-\[width\,background-color\] {
+    transition-property: width,background-color;
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
   }
@@ -1141,6 +1201,9 @@
     }
     .hover\:bg-ink-2:hover {
       background-color: var(--color-ink-2);
+    }
+    .hover\:bg-mute:hover {
+      background-color: var(--color-mute);
     }
     .hover\:bg-subtle:hover {
       background-color: var(--color-subtle);
@@ -1228,6 +1291,24 @@
     }
   }
   @media (width >= 40rem) {
+    .sm\:right-3 {
+      right: calc(var(--spacing) * 3);
+    }
+    .sm\:left-3 {
+      left: calc(var(--spacing) * 3);
+    }
+    .sm\:h-10 {
+      height: calc(var(--spacing) * 10);
+    }
+    .sm\:h-\[290px\] {
+      height: 290px;
+    }
+    .sm\:w-10 {
+      width: calc(var(--spacing) * 10);
+    }
+    .sm\:w-\[400px\] {
+      width: 400px;
+    }
     .sm\:w-\[500px\] {
       width: 500px;
     }
@@ -1245,14 +1326,17 @@
     }
   }
   @media (width >= 48rem) {
-    .md\:col-span-2 {
-      grid-column: span 2 / span 2;
-    }
     .md\:grid {
       display: grid;
     }
     .md\:hidden {
       display: none;
+    }
+    .md\:h-\[310px\] {
+      height: 310px;
+    }
+    .md\:w-\[430px\] {
+      width: 430px;
     }
     .md\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1350,6 +1434,9 @@
     .dialog-in {
       animation: dialog-fade 120ms ease-out;
     }
+    .card-slot, .card-flipper {
+      transition: opacity 150ms ease-out !important;
+    }
     button:active, a:active {
       transform: none !important;
     }
@@ -1376,6 +1463,33 @@
     to {
       opacity: 1;
     }
+  }
+  .card-stage {
+    perspective: 1400px;
+    touch-action: pan-y;
+  }
+  .card-slot {
+    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease-out;
+    transform-style: preserve-3d;
+  }
+  .card-flipper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1.586 / 1;
+    transform-style: preserve-3d;
+    transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .card-flipper.is-flipped {
+    transform: rotateY(180deg);
+  }
+  .card-face-front, .card-face-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .card-face-back {
+    transform: rotateY(180deg);
   }
   @media (pointer: coarse) {
     .touch-target {

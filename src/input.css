@@ -52,6 +52,9 @@
     .dialog-in {
       animation: dialog-fade 120ms ease-out;
     }
+    .card-slot, .card-flipper {
+      transition: opacity 150ms ease-out !important;
+    }
     button:active, a:active {
       transform: none !important;
     }
@@ -69,6 +72,34 @@
   @keyframes dialog-fade {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+  /* 3D Card Carousel & 180-degree Card Spin */
+  .card-stage {
+    perspective: 1400px;
+    touch-action: pan-y;
+  }
+  .card-slot {
+    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease-out;
+    transform-style: preserve-3d;
+  }
+  .card-flipper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1.586 / 1;
+    transform-style: preserve-3d;
+    transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .card-flipper.is-flipped {
+    transform: rotateY(180deg);
+  }
+  .card-face-front, .card-face-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .card-face-back {
+    transform: rotateY(180deg);
   }
   /* Expand secondary touch targets to 44x44px on coarse pointers (touch devices) */
   @media (pointer: coarse) {
