@@ -74,12 +74,24 @@ const formatCardNum = (w, show) => {
 
 /* ---------- Icons & Brand Mark ---------- */
 const icon = (d, cls = 'w-5 h-5', sz = 18) => `<svg width="${sz}" height="${sz}" class="${cls} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-const brandLogo = (cls = 'h-7 w-auto', h = 28) => `<img src="./assets/logo.png?v=20261118b" width="${Math.round(h * 161 / 110)}" height="${h}" alt="" class="${cls} object-contain shrink-0" aria-hidden="true">`;
+const brandLogo = (cls = 'h-7 w-auto', h = 28, dark = false) => `<img src="./assets/${dark ? 'logo-dark' : 'logo'}.png?v=20261118c" width="${Math.round(h * 161 / 110)}" height="${h}" alt="" class="${cls} object-contain shrink-0" aria-hidden="true">`;
+const brandLockup = (sub = 'Passbook & Card Vault') => `
+  <span class="inline-flex items-center gap-2.5">
+    ${brandLogo('h-8 w-auto', 32)}
+    <span class="flex flex-col text-left">
+      <span class="text-base font-semibold tracking-[-0.015em] text-ink leading-tight">One Wallet</span>
+      ${sub ? `<span class="text-[13px] text-mute leading-tight">${esc(sub)}</span>` : ''}
+    </span>
+  </span>`;
 const I = {
   today: '<path d="M4 5h16v15H4z"/><path d="M4 9h16M9 3v4M15 3v4"/>',
+  wallets: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14h2"/>',
   ledger: '<path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
   import: '<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
   bills: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  insights: '<path d="M4 19h16"/><path d="M7 15v-4M12 15V7M17 15v-6"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7M12 17h.01"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
@@ -93,7 +105,13 @@ const I = {
   card: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>',
   cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M5 20a7 7 0 0 1 14 0"/>',
-  check: '<path d="m5 12 5 5L20 7"/>'
+  check: '<path d="m5 12 5 5L20 7"/>',
+  catFood: '<path d="M4 11h16a7 7 0 0 1-14 0Z"/><path d="M3 11h18M9 18h6"/>',
+  catTransport: '<rect x="4" y="6" width="16" height="11" rx="2"/><path d="M4 12h16M7 17v2M17 17v2M8 14.5h.01M16 14.5h.01"/>',
+  catLoad: '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 17h2"/>',
+  catBills: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 9h6M9 13h4"/>',
+  catIncome: '<path d="M7 17 17 7"/><path d="M9 7h8v8"/>',
+  catOthers: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6"/>'
 };
 
 /* ---------- Philippine Bank & Digital Wallet Card Styles ---------- */
@@ -130,7 +148,7 @@ const netBadgeSvg = (net, light = false) => {
   if (net === 'mc') return `<svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden="true"><circle cx="14" cy="11" r="8.5" fill="#EB001B" fill-opacity="0.9"/><circle cx="22" cy="11" r="8.5" fill="#F79E1B" fill-opacity="0.9"/></svg>`;
   if (net === 'jcb') return `<svg width="36" height="22" viewBox="0 0 36 22" fill="none" aria-hidden="true"><rect x="3" y="3" width="9" height="16" rx="2.5" fill="#0066B2"/><rect x="13.5" y="3" width="9" height="16" rx="2.5" fill="#C82347"/><rect x="24" y="3" width="9" height="16" rx="2.5" fill="#15803D"/></svg>`;
   if (net === 'visa') return `<svg width="38" height="22" viewBox="0 0 38 22" fill="none" aria-hidden="true"><rect x="1" y="2" width="36" height="18" rx="3" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-opacity="0.35"/><path d="M8 7l2.5 8L13 7M16 7v8M24 7.5c-1-.4-2.5-.3-2.5 1 0 1.8 3 1.4 3 3.5 0 1.6-1.8 2.2-3.2 1.7M27.5 15L30 7l2.5 8M28.3 12.5h3.4" stroke="${light ? '#0F172A' : '#FFFFFF'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  return `<img src="./assets/logo.png?v=20261118b" width="29" height="20" alt="" class="h-5 w-auto object-contain shrink-0 ${light ? 'opacity-85' : 'brightness-0 invert opacity-90'}" aria-hidden="true">`;
+  return brandLogo('h-5 w-auto', 20, !light);
 };
 
 const motifSvg = st => {
@@ -1037,68 +1055,103 @@ const V = {
     const savedAccs = OWVault.listAccounts();
     const sbConnected = OWVault.isSupabaseConfigured();
     const busyAttr = S.authBusy ? 'disabled aria-busy="true"' : '';
+    const pdShort = shortDate(getPayday().slice(5));
+    const dl = daysLeft();
     return `
-      <main class="min-h-dvh flex items-center justify-center p-6">
-        <div class="w-full max-w-[440px]">
-          <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center gap-2.5">
-              ${brandLogo('h-7 w-auto', 28)}
-              <span class="text-base font-semibold tracking-[-0.01em]">One Wallet</span>
-            </div>
-            <button type="button" class="${C.link} text-xs inline-flex items-center gap-1 touch-pill" onclick="openModal('supabase')">
-              ${icon(I.cloud, 'w-3.5 h-3.5', 14)}${sbConnected ? 'Supabase Cloud active' : 'Connect Supabase'}
-            </button>
-          </div>
-
-          <h1 class="${C.h1} mb-1.5">Know what you can spend today.</h1>
-          <p class="text-sm text-ink-2 mb-5">Multi-account passbook ledger with configurable payday cycles and an AES-256-GCM client-encrypted card vault.</p>
-
-          <div class="${C.card} p-5">
-            <div role="tablist" aria-label="Account access" class="grid grid-cols-2 gap-1 p-1 rounded-ctl bg-subtle mb-4">
-              <button type="button" id="tab-signin" role="tab" aria-selected="${!isSignup}" aria-controls="auth-tabpanel" tabindex="${!isSignup ? '0' : '-1'}" class="h-9 max-sm:h-10 rounded-[6px] text-sm font-medium cursor-pointer ${!isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signin';S.errors={};R()">Sign in</button>
-              <button type="button" id="tab-signup" role="tab" aria-selected="${isSignup}" aria-controls="auth-tabpanel" tabindex="${isSignup ? '0' : '-1'}" class="h-9 max-sm:h-10 rounded-[6px] text-sm font-medium cursor-pointer ${isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signup';S.errors={};R()">Create account</button>
-            </div>
-
-            <div id="auth-tabpanel" role="tabpanel" aria-labelledby="${!isSignup ? 'tab-signin' : 'tab-signup'}">
-              ${!isSignup ? `
-                ${field('login-email', 'Email', `<input ${inputAttrs('login-email')} type="email" autocomplete="username" placeholder="demo@onewallet.ph" value="${draft('login-email', 'demo@onewallet.ph')}">`)}
-                ${field('login-pwd', 'Password', `<input ${inputAttrs('login-pwd')} type="password" autocomplete="current-password" placeholder="••••••••" value="${draft('login-pwd', 'demo1234')}">`, 'Unlocks your account & derives your in-memory AES-256-GCM card key')}
-                <div class="flex flex-col gap-2 mt-2">
-                  <button type="button" class="${C.btn} w-full" ${busyAttr} onclick="handleSignIn()">${S.authBusy ? 'Signing in & unlocking vault…' : 'Sign in to workspace'}</button>
-                  <button type="button" class="${C.btn2} w-full" ${busyAttr} onclick="openDemoAccount()">Try Demo Account (Juan Dela Cruz)</button>
-                </div>
-              ` : `
-                ${field('reg-name', 'Full name', `<input ${inputAttrs('reg-name')} placeholder="e.g. Maria Santos" value="${draft('reg-name')}">`)}
-                <div class="grid grid-cols-2 gap-x-3">
-                  ${field('reg-email', 'Email', `<input ${inputAttrs('reg-email')} type="email" autocomplete="email" placeholder="maria@onewallet.ph" value="${draft('reg-email')}">`)}
-                  ${field('reg-pwd', 'Password', `<input ${inputAttrs('reg-pwd')} type="password" autocomplete="new-password" placeholder="Min. 6 chars" value="${draft('reg-pwd')}">`)}
-                </div>
-                <div class="grid grid-cols-2 gap-x-3">
-                  ${field('reg-payday', 'Payday cycle', `
-                    <select id="reg-payday" class="${C.input}">
-                      <option value="bimonthly">15th & 30th</option>
-                      <option value="monthly-15">Every 15th</option>
-                      <option value="monthly-30">Every 30th</option>
-                    </select>`)}
-                  ${field('reg-preset', 'Starting setup', `
-                    <select id="reg-preset" class="${C.input}">
-                      <option value="starter">4 PH Wallets (₱0)</option>
-                      <option value="demo">Sample Demo Data</option>
-                      <option value="blank">Blank Workspace</option>
-                    </select>`)}
-                </div>
-                <button type="button" class="${C.btn} w-full mt-1" ${busyAttr} onclick="handleSignUp()">${S.authBusy ? 'Creating encrypted account…' : 'Create encrypted account'}</button>
-              `}
-            </div>
-          </div>
-
-          ${savedAccs.length > 0 ? `
-            <div class="mt-4 pt-3 border-t border-line">
-              <p class="text-xs font-medium text-mute mb-2">Accounts on this device (${savedAccs.length})</p>
-              <div class="flex flex-wrap gap-2">
-                ${savedAccs.map(a => `<button type="button" class="h-8 px-3 touch-pill rounded-full text-xs font-medium border border-line bg-card hover:border-ink/40 cursor-pointer" onclick="prefillSavedAccount('${esc(a.email)}')">${esc(a.fullName)} · ${esc(a.email)}</button>`).join('')}
+      <main class="min-h-dvh flex items-center justify-center p-4 md:p-8">
+        <div class="w-full max-w-[1140px] grid gap-5 lg:grid-cols-[1.14fr_1fr] items-stretch">
+          <section class="${C.card} p-6 flex flex-col justify-between">
+            <div>
+              <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-line">
+                ${brandLockup('Passbook & Encrypted Card Vault')}
+                <span class="tnum text-[13px] font-medium px-3 py-1 rounded-full bg-subtle text-ink-2">Next payday · ${pdShort} (${dl}d)</span>
               </div>
-            </div>` : ''}
+
+              <h1 class="${C.h1} mb-2">Know what you can spend today.</h1>
+              <p class="text-sm text-ink-2 mb-5">One Wallet combines your Philippine bank cards and digital wallets into a single passbook ledger, quarantines bills due before payday, and encrypts card details in-browser with AES-256-GCM.</p>
+
+              <div data-ui class="rounded-card border border-line bg-paper p-4 mb-4">
+                <div class="flex items-center justify-between text-[13px] text-ink-2 mb-1">
+                  <span class="inline-flex items-center gap-1.5 font-semibold text-ink"><span class="w-2 h-2 rounded-full bg-gain"></span>Daily safe-to-spend passbook</span>
+                  <span class="tnum text-mute">15th & 30th cycle</span>
+                </div>
+                <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 my-1">
+                  <p class="tnum text-[24px] font-semibold tracking-[-0.02em] text-ink whitespace-nowrap">₱183.40 <span class="text-[13px] font-normal text-mute">/ day</span></p>
+                  <span class="tnum text-[13px] text-ink-2">₱2,751.00 free · ₱1,499.00 bills set aside</span>
+                </div>
+                <div class="h-2 rounded-full bg-track overflow-hidden flex gap-0.5 mt-2" aria-hidden="true">
+                  <span class="block h-full bg-gain" style="width:65%"></span>
+                  <span class="block h-full bg-marigold" style="width:35%"></span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                ${renderCardFace({ style: 'gcash', n: 'GCash' }, { mini: true })}
+                ${renderCardFace({ style: 'bpi-plat', n: 'BPI' }, { mini: true })}
+              </div>
+            </div>
+
+            <dl class="grid grid-cols-3 gap-3 pt-4 mt-5 border-t border-line text-[13px]">
+              <div><dt class="font-semibold text-ink">AES-256-GCM</dt><dd class="text-mute">Zero-knowledge card vault</dd></div>
+              <div><dt class="font-semibold text-ink">15th & 30th</dt><dd class="text-mute">PH payday runway math</dd></div>
+              <div><dt class="font-semibold text-ink">Supabase RLS</dt><dd class="text-mute">Per-user cloud isolation</dd></div>
+            </dl>
+          </section>
+
+          <section class="${C.card} p-6 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-4 mb-4 border-b border-line">
+                <h2 class="${C.cardTitle}">Workspace access</h2>
+                <button type="button" class="${C.link} text-[13px] inline-flex items-center gap-1 touch-pill" onclick="openModal('supabase')">
+                  ${icon(I.cloud, 'w-3.5 h-3.5', 14)}${sbConnected ? 'Supabase Cloud active' : 'Connect Supabase'}
+                </button>
+              </div>
+
+              <div role="tablist" aria-label="Account access" class="grid grid-cols-2 gap-1 p-1 rounded-ctl bg-subtle mb-4">
+                <button type="button" id="tab-signin" role="tab" aria-selected="${!isSignup}" aria-controls="auth-tabpanel" tabindex="${!isSignup ? '0' : '-1'}" class="h-9 max-sm:h-10 rounded-[6px] text-sm font-medium cursor-pointer ${!isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signin';S.errors={};R()">Sign in</button>
+                <button type="button" id="tab-signup" role="tab" aria-selected="${isSignup}" aria-controls="auth-tabpanel" tabindex="${isSignup ? '0' : '-1'}" class="h-9 max-sm:h-10 rounded-[6px] text-sm font-medium cursor-pointer ${isSignup ? 'bg-card text-ink font-semibold' : 'text-ink-2 hover:text-ink'}" onclick="S.authTab='signup';S.errors={};R()">Create account</button>
+              </div>
+
+              <div id="auth-tabpanel" role="tabpanel" aria-labelledby="${!isSignup ? 'tab-signin' : 'tab-signup'}">
+                ${!isSignup ? `
+                  ${field('login-email', 'Email', `<input ${inputAttrs('login-email')} type="email" autocomplete="username" placeholder="demo@onewallet.ph" value="${draft('login-email', 'demo@onewallet.ph')}">`)}
+                  ${field('login-pwd', 'Password', `<input ${inputAttrs('login-pwd')} type="password" autocomplete="current-password" placeholder="••••••••" value="${draft('login-pwd', 'demo1234')}">`, 'Unlocks your account & derives your in-memory AES-256-GCM card key')}
+                  <div class="flex flex-col gap-2 mt-2">
+                    <button type="button" class="${C.btn} w-full" ${busyAttr} onclick="handleSignIn()">${S.authBusy ? 'Signing in & unlocking vault…' : 'Sign in to workspace'}</button>
+                    <button type="button" class="${C.btn2} w-full" ${busyAttr} onclick="openDemoAccount()">Try Demo Account (Juan Dela Cruz)</button>
+                  </div>
+                ` : `
+                  ${field('reg-name', 'Full name', `<input ${inputAttrs('reg-name')} placeholder="e.g. Maria Santos" value="${draft('reg-name')}">`)}
+                  <div class="grid grid-cols-2 gap-x-3">
+                    ${field('reg-email', 'Email', `<input ${inputAttrs('reg-email')} type="email" autocomplete="email" placeholder="maria@onewallet.ph" value="${draft('reg-email')}">`)}
+                    ${field('reg-pwd', 'Password', `<input ${inputAttrs('reg-pwd')} type="password" autocomplete="new-password" placeholder="Min. 6 chars" value="${draft('reg-pwd')}">`)}
+                  </div>
+                  <div class="grid grid-cols-2 gap-x-3">
+                    ${field('reg-payday', 'Payday cycle', `
+                      <select id="reg-payday" class="${C.input}">
+                        <option value="bimonthly">15th & 30th</option>
+                        <option value="monthly-15">Every 15th</option>
+                        <option value="monthly-30">Every 30th</option>
+                      </select>`)}
+                    ${field('reg-preset', 'Starting setup', `
+                      <select id="reg-preset" class="${C.input}">
+                        <option value="starter">4 PH Wallets (₱0)</option>
+                        <option value="demo">Sample Demo Data</option>
+                        <option value="blank">Blank Workspace</option>
+                      </select>`)}
+                  </div>
+                  <button type="button" class="${C.btn} w-full mt-1" ${busyAttr} onclick="handleSignUp()">${S.authBusy ? 'Creating encrypted account…' : 'Create encrypted account'}</button>
+                `}
+              </div>
+            </div>
+
+            <div class="pt-4 mt-4 border-t border-line">
+              <p class="text-[13px] font-medium text-mute mb-2">Accounts on this device (${savedAccs.length || 1})</p>
+              <div class="flex flex-wrap gap-2">
+                ${(savedAccs.length ? savedAccs : [{ fullName: 'Juan Dela Cruz', email: 'demo@onewallet.ph' }]).map(a => `<button type="button" class="h-8 px-3 touch-pill rounded-full text-[13px] font-medium border border-line bg-paper hover:border-ink/40 cursor-pointer" onclick="prefillSavedAccount('${esc(a.email)}')">${esc(a.fullName)} · ${esc(a.email)}</button>`).join('')}
+              </div>
+            </div>
+          </section>
         </div>
       </main>`;
   },
@@ -1130,12 +1183,12 @@ const V = {
 
             <div>
               <div class="flex justify-between text-xs text-ink-2 mb-1.5 tnum">
-                <span>Free to spend · ${freePct}% (${peso(fr)})</span>
-                <span>Bills set aside · ${resPct}% (${peso(res)})</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gain" aria-hidden="true"></span>Free to spend · ${freePct}% (${peso(fr)})</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-marigold" aria-hidden="true"></span>Bills set aside · ${resPct}% (${peso(res)})</span>
               </div>
-              <div class="h-2 rounded-full bg-track overflow-hidden flex gap-0.5" role="img" aria-label="${freePct}% free to spend, ${resPct}% set aside for bills">
-                <span class="block h-full bg-ink transition-[width] duration-200" style="width:${freePct}%"></span>
-                <span class="block h-full bg-mute/45 transition-[width] duration-200" style="width:${resPct}%"></span>
+              <div class="h-2.5 rounded-full bg-track overflow-hidden flex gap-0.5" role="img" aria-label="${freePct}% free to spend, ${resPct}% set aside for bills">
+                <span class="block h-full bg-gain transition-[width] duration-200" style="width:${freePct}%"></span>
+                <span class="block h-full bg-marigold transition-[width] duration-200" style="width:${resPct}%"></span>
               </div>
             </div>
           </div>
@@ -1163,16 +1216,26 @@ const V = {
 
         <div class="flex flex-col gap-4 h-full">
           <section class="${C.card} p-4">
-            ${cardHead('Wallets', `<button type="button" class="${C.link} inline-flex items-center gap-1" onclick="openModal('wallet')">${icon(I.plus, 'w-3.5 h-3.5', 14)}Add</button>`)}
-            <ul class="mt-1.5 space-y-1.5">
-              ${S.w.map(w => `<li>
+            ${cardHead('Wallets & Cards', `<button type="button" class="${C.link} inline-flex items-center gap-1" onclick="openModal('wallet')">${icon(I.plus, 'w-3.5 h-3.5', 14)}Add</button>`)}
+            <ul class="mt-2 space-y-2">
+              ${S.w.map(w => {
+                const st = getCardStyle(w.style);
+                return `<li>
                 <button type="button" class="w-full text-left group cursor-pointer" onclick="openWallet(${w.id})" aria-label="${esc(w.n)}, ${peso(w.b)}. Open wallet">
-                  <span class="flex justify-between text-sm"><span class="font-medium text-ink group-hover:underline underline-offset-4">${esc(w.n)}</span><span class="tnum font-medium text-ink">${peso(w.b)}</span></span>
-                  <span class="block h-1 mt-1 rounded-full bg-track overflow-hidden"><span class="block h-full rounded-full bg-ink" style="width:${tot > 0 ? Math.max(0, w.b) / tot * 100 : 0}%"></span></span>
+                  <span class="flex items-center justify-between text-sm gap-2">
+                    <span class="inline-flex items-center gap-2 min-w-0">
+                      <span data-ui class="w-6 h-4 rounded-[3px] shrink-0 inline-flex items-center px-1" style="background-color:${st.bg}"><span class="w-1.5 h-1 rounded-[1px]" style="background-color:${st.accent}"></span></span>
+                      <span class="font-medium text-ink group-hover:underline underline-offset-4 truncate">${esc(w.n)}</span>
+                      <span class="tnum text-xs text-mute">••${esc(w.last4 || '4821')}</span>
+                    </span>
+                    <span class="tnum font-medium text-ink shrink-0">${peso(w.b)}</span>
+                  </span>
+                  <span class="block h-1 mt-1.5 rounded-full bg-track overflow-hidden"><span class="block h-full rounded-full bg-ink" style="width:${tot > 0 ? Math.max(0, w.b) / tot * 100 : 0}%"></span></span>
                 </button>
-              </li>`).join('') || `<li class="py-3 ${C.meta}">No wallets yet.</li>`}
+              </li>`;
+              }).join('') || `<li class="py-3 ${C.meta}">No wallets yet.</li>`}
             </ul>
-            <div class="flex justify-between text-sm font-semibold pt-2 mt-2 border-t border-line"><span>Total balance</span><span class="tnum">${peso(tot)}</span></div>
+            <div class="flex justify-between text-sm font-semibold pt-2.5 mt-2.5 border-t border-line"><span>Total balance</span><span class="tnum">${peso(tot)}</span></div>
           </section>
 
           <section class="${C.card} p-4 flex-1 flex flex-col justify-between">
@@ -1438,15 +1501,29 @@ const V = {
 };
 
 /* ---------- Shell & render ---------- */
-const NAV = [['today', 'Today'], ['wallets', 'Wallets'], ['ledger', 'Ledger'], ['import', 'Import alert'], ['bills', 'Bills'], ['insights', 'Insights']];
-const NAV2 = [['settings', 'Settings'], ['help', 'Help']];
+const NAV = [
+  ['today', 'Today', I.today],
+  ['wallets', 'Wallets & Cards', I.wallets],
+  ['ledger', 'Ledger', I.ledger],
+  ['import', 'Import alert', I.import],
+  ['bills', 'Bills due', I.bills],
+  ['insights', 'Insights', I.insights]
+];
+const NAV2 = [
+  ['settings', 'Settings', I.settings],
+  ['help', 'Help', I.help]
+];
 const TABS = [['today', 'Today', I.today], ['ledger', 'Ledger', I.ledger], ['import', 'Import', I.import], ['bills', 'Bills', I.bills], ['more', 'More', I.menu]];
 const MORE_GROUP = ['more', 'wallets', 'insights', 'settings', 'help'];
 
-const navLink = ([k, l]) => {
+const navLink = ([k, l, ic]) => {
   const on = S.view === k;
-  return `<a href="#${k}" ${on ? 'aria-current="page"' : ''} class="relative flex items-center h-9 mx-3 px-3 rounded-ctl text-sm ${on ? 'bg-subtle font-semibold text-ink' : 'text-ink-2 hover:text-ink hover:bg-subtle/50'}">
-    ${on ? '<span class="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-ink" aria-hidden="true"></span>' : ''}${l}</a>`;
+  const count = k === 'bills' && S.b.length ? S.b.length : 0;
+  return `<a href="#${k}" ${on ? 'aria-current="page"' : ''} class="relative flex items-center gap-2.5 h-9 mx-3 px-3 rounded-ctl text-sm ${on ? 'bg-card font-semibold text-ink border border-line' : 'text-ink-2 hover:text-ink hover:bg-card/60'}">
+    ${icon(ic, 'w-4 h-4', 16)}
+    <span class="truncate">${l}</span>
+    ${count ? `<span class="ml-auto tnum text-xs font-medium px-1.5 py-0.5 rounded-full ${on ? 'bg-subtle text-ink' : 'bg-card text-ink-2 border border-line'}">${count}</span>` : on ? '<span class="ml-auto w-2 h-3 rounded-l-full bg-ink" aria-hidden="true"></span>' : ''}
+  </a>`;
 };
 
 function renderModal() {
@@ -1477,34 +1554,41 @@ function R() {
   const label = [...NAV, ...NAV2, ['more', 'More']].find(n => n[0] === S.view)?.[1] ?? 'One Wallet';
   document.title = `${label} · One Wallet`;
   const pdShort = shortDate(getPayday().slice(5));
+  const dl = daysLeft();
 
   shell.innerHTML = `
-    <div class="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
-      <aside class="max-md:hidden sticky top-0 h-dvh flex flex-col bg-card border-r border-line">
-        <a href="#today" class="flex items-center gap-2.5 px-6 pt-6 pb-5">
-          ${brandLogo('h-7 w-auto', 28)}
-          <span class="text-base font-semibold tracking-[-0.01em]">One Wallet</span>
+    <div class="min-h-dvh bg-paper md:grid md:grid-cols-[248px_1fr]">
+      <aside class="max-md:hidden sticky top-0 h-dvh flex flex-col bg-paper">
+        <a href="#today" class="flex items-center px-5 pt-5 pb-4">
+          ${brandLockup('Passbook & Card Vault')}
         </a>
+
+        <div class="mx-3 mb-4 p-3 rounded-card bg-card border border-line text-xs">
+          <div class="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-line">
+            <span class="font-semibold text-ink truncate">${esc(S.fullName)}</span>
+            <button type="button" class="text-ink-2 hover:text-ink underline cursor-pointer shrink-0" onclick="signOut()">Switch</button>
+          </div>
+          <div class="flex items-center justify-between text-mute">
+            <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-gain" aria-hidden="true"></span>Next payday</span>
+            <button type="button" class="tnum font-semibold text-ink hover:underline cursor-pointer" onclick="openModal('payday')">${pdShort} (${dl}d)</button>
+          </div>
+        </div>
+
+        <p class="px-6 pb-1.5 text-xs font-medium text-mute">Passbook</p>
         <nav aria-label="Main" class="flex flex-col gap-0.5">${NAV.map(navLink).join('')}</nav>
-        <nav aria-label="Account" class="mt-auto flex flex-col gap-0.5 pb-3">${NAV2.map(navLink).join('')}</nav>
-        <div class="border-t border-line px-6 py-3.5 text-xs">
-          <div class="flex items-center justify-between text-mute mb-1">
-            <span>Next payday</span>
-            <button type="button" class="tnum font-semibold text-ink hover:underline cursor-pointer" onclick="openModal('payday')">${pdShort}</button>
-          </div>
-          <div class="flex items-center justify-between text-mute truncate">
-            <span class="truncate">${esc(S.fullName)}</span>
-            <button type="button" class="text-ink-2 hover:text-ink underline cursor-pointer shrink-0 ml-2" onclick="signOut()">Switch</button>
-          </div>
+
+        <div class="mt-auto pt-3 pb-4">
+          <p class="px-6 pb-1.5 text-xs font-medium text-mute">System</p>
+          <nav aria-label="Account" class="flex flex-col gap-0.5">${NAV2.map(navLink).join('')}</nav>
         </div>
       </aside>
 
-      <div class="min-w-0">
+      <div class="min-w-0 md:py-3 md:pr-3 flex flex-col">
         <header class="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b border-line">
-          <span class="flex items-center gap-2">${brandLogo('h-6 w-auto', 24)}<span class="text-sm font-semibold">One Wallet</span></span>
-          <button type="button" class="${C.meta} hover:text-ink cursor-pointer" onclick="openModal('payday')">Payday ${pdShort}</button>
+          <a href="#today" class="flex items-center gap-2">${brandLogo('h-6 w-auto', 24)}<span class="text-sm font-semibold text-ink">One Wallet</span></a>
+          <button type="button" class="tnum text-xs font-medium px-2.5 py-1 rounded-full bg-subtle text-ink cursor-pointer" onclick="openModal('payday')">Payday ${pdShort} · ${dl}d</button>
         </header>
-        <main id="main" class="w-full max-w-[1208px] mx-auto px-4 pt-5 pb-28 md:px-8 md:pt-7 md:pb-12">${V[S.view]()}</main>
+        <main id="main" class="flex-1 w-full max-w-[1208px] mx-auto px-4 pt-5 pb-28 md:bg-card md:border md:border-line md:rounded-card md:px-8 md:py-7">${V[S.view]()}</main>
       </div>
     </div>
 
