@@ -1140,6 +1140,11 @@
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
   }
+  .transition-transform {
+    transition-property: transform, translate, scale, rotate;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
   .duration-100 {
     --tw-duration: 100ms;
     transition-duration: 100ms;
@@ -1243,6 +1248,12 @@
   .focus\:outline-none:focus {
     --tw-outline-style: none;
     outline-style: none;
+  }
+  .active\:scale-95:active {
+    --tw-scale-x: 95%;
+    --tw-scale-y: 95%;
+    --tw-scale-z: 95%;
+    scale: var(--tw-scale-x) var(--tw-scale-y);
   }
   .active\:scale-\[0\.98\]:active {
     scale: 0.98;
@@ -1438,6 +1449,15 @@
     .card-slot, .card-flipper {
       transition: opacity 150ms ease-out !important;
     }
+    .summary-swap {
+      animation: dialog-fade 120ms ease-out !important;
+    }
+    .card-sheen {
+      display: none !important;
+    }
+    .grid-card-stage:hover .card-flipper:not(.is-flipped) {
+      transform: none !important;
+    }
     button:active, a:active {
       transform: none !important;
     }
@@ -1470,15 +1490,20 @@
     touch-action: pan-y;
   }
   .card-slot {
-    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease-out;
+    transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1);
     transform-style: preserve-3d;
+    will-change: transform, opacity;
   }
   .card-flipper {
     position: relative;
     width: 100%;
     aspect-ratio: 1.586 / 1;
     transform-style: preserve-3d;
-    transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+  .card-flipper.is-tilting:not(.is-flipped) {
+    transition: transform 120ms ease-out;
   }
   .card-flipper.is-flipped {
     transform: rotateY(180deg);
@@ -1488,9 +1513,40 @@
     inset: 0;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    border-radius: var(--radius-card, 10px);
+    overflow: hidden;
   }
   .card-face-back {
     transform: rotateY(180deg);
+  }
+  .card-sheen {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0;
+    background: rgba(255, 255, 255, 0.045);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    transition: opacity 180ms ease-out;
+  }
+  .card-flipper:hover .card-sheen {
+    opacity: 1;
+  }
+  .grid-card-stage:hover .card-flipper:not(.is-flipped) {
+    transform: translateY(-2px);
+  }
+  .summary-swap {
+    animation: summary-swap 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes summary-swap {
+    from {
+      opacity: 0.35;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   @media (pointer: coarse) {
     .touch-target {
@@ -1707,6 +1763,21 @@
   syntax: "*";
   inherits: false;
 }
+@property --tw-scale-x {
+  syntax: "*";
+  inherits: false;
+  initial-value: 1;
+}
+@property --tw-scale-y {
+  syntax: "*";
+  inherits: false;
+  initial-value: 1;
+}
+@property --tw-scale-z {
+  syntax: "*";
+  inherits: false;
+  initial-value: 1;
+}
 @layer properties {
   @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
     *, ::before, ::after, ::backdrop {
@@ -1757,6 +1828,9 @@
       --tw-drop-shadow-alpha: 100%;
       --tw-drop-shadow-size: initial;
       --tw-duration: initial;
+      --tw-scale-x: 1;
+      --tw-scale-y: 1;
+      --tw-scale-z: 1;
     }
   }
 }

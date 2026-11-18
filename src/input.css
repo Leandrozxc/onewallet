@@ -55,6 +55,15 @@
     .card-slot, .card-flipper {
       transition: opacity 150ms ease-out !important;
     }
+    .summary-swap {
+      animation: dialog-fade 120ms ease-out !important;
+    }
+    .card-sheen {
+      display: none !important;
+    }
+    .grid-card-stage:hover .card-flipper:not(.is-flipped) {
+      transform: none !important;
+    }
     button:active, a:active {
       transform: none !important;
     }
@@ -79,15 +88,20 @@
     touch-action: pan-y;
   }
   .card-slot {
-    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease-out;
+    transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1);
     transform-style: preserve-3d;
+    will-change: transform, opacity;
   }
   .card-flipper {
     position: relative;
     width: 100%;
     aspect-ratio: 1.586 / 1;
     transform-style: preserve-3d;
-    transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+  .card-flipper.is-tilting:not(.is-flipped) {
+    transition: transform 120ms ease-out;
   }
   .card-flipper.is-flipped {
     transform: rotateY(180deg);
@@ -97,9 +111,34 @@
     inset: 0;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    border-radius: var(--radius-card, 10px);
+    overflow: hidden;
   }
   .card-face-back {
     transform: rotateY(180deg);
+  }
+  .card-sheen {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0;
+    background: rgba(255, 255, 255, 0.045);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    transition: opacity 180ms ease-out;
+  }
+  .card-flipper:hover .card-sheen {
+    opacity: 1;
+  }
+  .grid-card-stage:hover .card-flipper:not(.is-flipped) {
+    transform: translateY(-2px);
+  }
+  .summary-swap {
+    animation: summary-swap 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes summary-swap {
+    from { opacity: 0.35; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
   }
   /* Expand secondary touch targets to 44x44px on coarse pointers (touch devices) */
   @media (pointer: coarse) {
