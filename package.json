@@ -1,14 +1,19 @@
 {
   "name": "onewallet",
-  "version": "1.0.0",
-  "description": "Multi-wallet finance tracker built with C# and Blazor",
-  "main": "index.js",
- "scripts": {
-  "build": "npx @tailwindcss/cli -i ./src/input.css -o ./dist/output.css",
-  "watch": "npx @tailwindcss/cli -i ./src/input.css -o ./dist/output.css --watch"
+  "version": "2.0.0",
+  "description": "Offline-first multi-wallet passbook ledger, payday runway calculator, and AES-256-GCM Philippine card vault",
+  "scripts": {
+    "build": "npx @tailwindcss/cli -i ./src/input.css -o ./dist/output.css --minify",
+    "watch": "npx @tailwindcss/cli -i ./src/input.css -o ./dist/output.css --watch",
+    "test": "node --test"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "personal-finance",
+    "passbook",
+    "philippines",
+    "web-crypto",
+    "supabase"
+  ],
   "license": "ISC",
   "dependencies": {
     "@tailwindcss/cli": "^4.3.3",
