@@ -3,52 +3,35 @@
 [![Deploy to GitHub Pages](https://github.com/Leandrozxc/onewallet/actions/workflows/deploy.yml/badge.svg)](https://github.com/Leandrozxc/onewallet/actions/workflows/deploy.yml)
 [![Live Demo](https://img.shields.io/badge/demo-live%20site-teal?style=flat-square)](https://leandrozxc.github.io/onewallet/)
 
-A multi-wallet personal finance tracker designed for Philippine digital wallets and banks (GCash, Maya, GoTyme, Cash).
+An offline-first personal finance passbook, payday runway calculator, and client-encrypted card vault built for Philippine digital wallets and banks (`GCash`, `Maya`, `GoTyme`, `BDO`, `BPI`, `UnionBank`, `Metrobank`, `RCBC`, `EastWest`, `CIMB`, `Cash`).
 
-🔗 **Live Prototype**: [https://leandrozxc.github.io/onewallet/](https://leandrozxc.github.io/onewallet/)
+🔗 **Live Application**: [https://leandrozxc.github.io/onewallet/](https://leandrozxc.github.io/onewallet/)
 
-## Overview
+## Key Capabilities
 
-One Wallet consolidates fragmented balances into a unified dashboard, calculates daily spending runway until next payday, parses copied payment SMS/notifications, and maintains an offline-first financial ledger.
+- **Integer-Centavo Financial Precision**: Fixed-point centavo arithmetic (`src/money.js`, `src/domain.js`) eliminates IEEE-754 floating-point drift across balances, ledger edits, bill settlements, reconciliations, and cashflow insights.
+- **Payday Runway & Bill Shortfall Engine**: Calculates daily safe-to-spend allowance across `15th & 30th Bi-monthly`, `Every 15th`, `Every 30th / month-end`, and `Custom target date` schedules—accounting for leap years, today's spending pace, and underfunded bill shortfalls.
+- **Zero-Knowledge Encrypted Card Vault (`AES-256-GCM`)**: Optional card numbers, expiry dates, and CVV codes are encrypted in-browser via Web Crypto `PBKDF2-SHA256` (`600,000` iterations with domain-separated authentication and vault salts) + `AES-256-GCM`, and auto-masked whenever the window loses focus. Cardless wallets (`Cash`, passbook e-wallets) never fabricate placeholder card numbers.
+- **Verified SMS / Notification Import**: Provider-aware parser (`src/alert-parser.js`) for Philippine e-wallets and banks with editable preview fields, reference-number duplicate detection, and automatic rejection of OTPs, failed/declined alerts, and balance inquiries.
+- **Quarantined Bills & Partial / Recurring Settlement**: Reserve upcoming bills before payday, settle full or partial payments atomically into the ledger, and roll monthly/bi-monthly bills forward automatically.
+- **Searchable Ledger, Category Limits & Data Portability**: Filter entries by search query, wallet, category, type, and timeframe; configure category spending caps; export RFC-4180 CSV statements; and download/restore JSON workspace backups.
+- **Resilient Supabase Sync**: Transactional PostgreSQL RPC (`supabase/schema.sql`) with non-destructive upsert-first fallback, automatic JWT refresh, and offline pending-sync retry.
 
-## Project Documentation
+## Architecture
 
-- **[Class Diagram](docs/class-diagram.md)**: Object-oriented domain models, services, page relationships, and architecture blueprint for the Blazor migration.
-- **[Code Review](docs/code-review.md)**: In-depth technical evaluation of the prototype codebase, security assessment, data integrity review, and refactoring roadmap.
-
-## Key Features
-
-- **Multi-Account Registration, Switching & Cloud Sync**: Create separate encrypted accounts with custom starting presets (`4 PH Wallets`, `Sample Demo Data`, or `Blank Workspace`), switch accounts seamlessly, and sync across devices via **Supabase Auth & PostgreSQL**.
-- **Zero-Knowledge Encrypted Card Vault (`AES-256-GCM`)**: Store 16 Philippine credit/debit card and digital wallet designs (`BDO`, `BPI`, `EastWest`, `Metrobank`, `RCBC`, `UnionBank`, `Maya`, `GoTyme`, `CIMB`, `GCash`, `Cash`). Card numbers, expiry dates, and CVV codes are encrypted in-browser via Web Crypto `PBKDF2-SHA256` + `AES-256-GCM` (`src/vault-cloud.js`) before touching `localStorage` or Supabase PostgreSQL.
-- **Real-Time Payday Cycle & Daily Runway Calculator**: Dynamic spendable daily budget calculated from real calendar dates and configurable payday schedules (`15th & 30th Bi-monthly`, `Every 15th`, `Every 30th`, or `Custom target date`).
-- **Quarantined Bills & One-Click Bill Settlement**: Set aside upcoming bills from your safe-to-spend balance, and click **Pay bill** to deduct from a chosen wallet, record a `Bills` ledger entry, and clear the quarantined bill in one step.
-- **Payment Alert Parser & Full Ledger CRUD**: Extracts merchant, transaction amount, direction, and category from copied SMS/app alerts, with full edit and delete support across wallets, ledger entries, and bills.
-- **Balance Reconciliation**: One-click balance adjustments that maintain audit history when physical app balances drift.
-
-## Tech Stack
-
-- **Frontend**: HTML5, Modular Vanilla ES JavaScript (`src/vault-cloud.js`), Tailwind CSS v4 CLI
-- **Cryptography**: Web Crypto API (`PBKDF2-SHA256` key derivation + `AES-256-GCM` authenticated encryption)
-- **Cloud Backend & Database**: Supabase Auth + PostgreSQL with strict Row-Level Security (`supabase/schema.sql`)
-- **Deployment**: GitHub Pages via GitHub Actions
+- `src/money.js` — Integer-centavo currency math, formatting, and input validation
+- `src/domain.js` — Payday/runway math, atomic ledger/wallet/bill operations, insights, and CSV/JSON portability
+- `src/alert-parser.js` — Philippine payment SMS & notification parser with confidence and duplicate checks
+- `src/vault-cloud.js` — Domain-separated `PBKDF2-SHA256` + `AES-256-GCM` vault, multi-account store, and Supabase sync
+- `src/cards.js` — Vector Philippine bank & e-wallet card art and masking rules
+- `src/app.js` — State controller, route auth guards, delegated event listeners, and passbook views
+- `supabase/schema.sql` — PostgreSQL schema, Row-Level Security policies, and `sync_user_workspace` ACID RPC
 
 ## Getting Started
 
-### 1. Run Live Online
-Visit the deployed application at [https://leandrozxc.github.io/onewallet/](https://leandrozxc.github.io/onewallet/).
-
-### 2. Run Locally
-Open `index.html` directly in any modern web browser or serve via:
-```bash
-npx serve .
-```
-
-### 3. Build Styles
 ```bash
 npm install
-npm run build
-```
-To run Tailwind in watch mode:
-```bash
-npm run watch
+npm run build   # Compile Tailwind CSS v4 into dist/output.css
+npm test        # Run automated financial, parser, security, and sync tests
+npx serve .     # Serve locally (or open index.html directly)
 ```

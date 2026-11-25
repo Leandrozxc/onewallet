@@ -33,8 +33,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run automated test suite
+        run: npm test
+
       - name: Build Tailwind CSS
         run: npm run build
+
+      - name: Stage static production bundle
+        run: |
+          mkdir -p _site/dist _site/src _site/assets
+          cp index.html .nojekyll _site/
+          cp dist/output.css _site/dist/
+          cp src/*.js _site/src/
+          cp -r assets/* _site/assets/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -42,7 +53,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "."
+          path: "_site"
 
       - name: Deploy to GitHub Pages
         id: deployment

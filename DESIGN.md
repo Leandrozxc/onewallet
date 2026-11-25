@@ -161,9 +161,9 @@ An achromatic slate-and-paper ledger palette where semantic hues appear only whe
 
 ## Layout
 
-- **Desktop (`>= 768px`)**: Two-column application shell (`232px` sticky left `<aside>` navigation + fluid content column capped at `max-w-[1208px]` with `32px` horizontal padding).
-- **Mobile (`< 768px`)**: Compact top status header + single-column content (`16px` horizontal padding, `112px` bottom clearance) + fixed 5-tab bottom navigation bar (`60px` height + `env(safe-area-inset-bottom)`).
-- **Dashboard & Wallets Grid**: Asymmetric 2-column split on desktop (`1.28fr 1fr` on Today, `2` equal columns on Wallets & Cards) collapsing cleanly to a single vertical stack on narrow viewports.
+- **Desktop (`>= 768px`)**: Sticky horizontal top `<header>` navigation (`48px` height, `1px` `border-line` bottom rule) + centered fluid passbook column capped at `max-w-[1160px]` (`24px` horizontal padding).
+- **Mobile (`< 768px`)**: Compact top status header + single-column content (`16px` horizontal padding, `96px` bottom clearance) + fixed 5-tab bottom navigation bar (`60px` height + `env(safe-area-inset-bottom)`).
+- **Dashboard & Wallets Grid**: Asymmetric 2-column split on desktop (`1.28fr 1fr` on Today, `2` equal columns on Wallets & Cards Grid) collapsing cleanly to a single vertical stack on narrow viewports.
 
 ## Elevation & Depth
 
